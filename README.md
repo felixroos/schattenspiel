@@ -23,6 +23,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 - When you make a change, you can update the shader by pressing `ctrl+Enter`.
 - The URL will reflect your latest code change, so you can share the URL / refresh the page
 
+To learn more about shader coding, I recommend [this video](https://www.youtube.com/watch?v=f4s1h2YETNY).
+
 Many shadertoy examples work here, just note that only a subset of uniforms is defined:
 
 ### Uniforms
