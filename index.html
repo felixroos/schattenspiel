@@ -47,6 +47,8 @@
         // set up code input
         const input = document.querySelector("#code");
         input.value = initialShader;
+        window.codestyle = (attr, value) => (input.style[attr] = value);
+
         // vertex shader
         const vs = `
           attribute vec4 a_position;
