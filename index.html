@@ -65,7 +65,7 @@
         // mouse logic
         let mouseX = 0;
         let mouseY = 0;
-        canvas.addEventListener("mousemove", () => {
+        document.addEventListener("mousemove", (e) => {
           const { left, height, top } = canvas.getBoundingClientRect();
           mouseX = e.clientX - left;
           mouseY = height - (e.clientY - top) - 1;
