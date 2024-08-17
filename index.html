@@ -1,0 +1,266 @@
+<html style="height: 100%; width: 100%">
+  <head>
+    <title>schattenspiel</title>
+  </head>
+  <body style="height: 100%; width: 100%; margin: 0; background-color: white">
+    <textarea
+      id="code"
+      style="
+        background-color: transparent;
+        width: 100%;
+        height: 100%;
+        position: fixed;
+        top: 0;
+        left: 0;
+        border: 0;
+        outline: none;
+        padding: 10px;
+        resize: none;
+        color: black;
+        font-size: 16px;
+      "
+      spellcheck="false"
+    ></textarea>
+    <canvas id="canvas" style="width: 100%; height: 100%"></canvas>
+    <script>
+      // read base64 code from url
+      let urlCode = window.location.hash.slice(1);
+      if (urlCode) {
+        urlCode = atob(urlCode);
+        console.log("loaded code from url!");
+      }
+      // use urlCode or fall back to default shadertoy example
+      const initialShader =
+        urlCode ||
+        `void mainImage( out vec4 fragColor, in vec2 fragCoord )
+{
+    // Normalized pixel coordinates (from 0 to 1)
+    vec2 uv = fragCoord/iResolution.xy;
+
+    // Time varying pixel color
+    vec3 col = 0.5 + 0.5*cos(iTime+uv.xyx+vec3(0,2,4));
+
+    // Output to screen
+    fragColor = vec4(col,1.0);
+}`;
+      function main() {
+        // set up code input
+        const input = document.querySelector("#code");
+        input.value = initialShader;
+        // vertex shader
+        const vs = `
+          attribute vec4 a_position;
+          void main() {
+            gl_Position = a_position;
+          }
+        `;
+
+        // set up canvas
+        const canvas = document.querySelector("#canvas");
+        const gl = canvas.getContext("webgl");
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width; // * window.devicePixelRatio;
+        canvas.height = rect.height; // * window.devicePixelRatio;
+
+        // mouse logic
+        let mouseX = 0;
+        let mouseY = 0;
+        canvas.addEventListener("mousemove", () => {
+          const { left, height, top } = canvas.getBoundingClientRect();
+          mouseX = e.clientX - left;
+          mouseY = height - (e.clientY - top) - 1;
+        });
+
+        // animation frame logic
+        let requestId;
+        function requestFrame(render) {
+          if (!requestId) {
+            requestId = requestAnimationFrame(render);
+          }
+        }
+        function cancelFrame() {
+          if (requestId) {
+            cancelAnimationFrame(requestId);
+            requestId = undefined;
+          }
+        }
+
+        // runs on eval
+        function updateShader(mainImageFunction) {
+          // fragment shader
+          const fs = `
+          precision highp float;
+          uniform vec2 iResolution;
+          uniform vec2 iMouse;
+          uniform float iTime;
+          ${mainImageFunction}
+          void main() {
+            mainImage(gl_FragColor, gl_FragCoord.xy);
+          }`;
+          cancelFrame();
+          const program = createProgramFromSources(gl, [vs, fs]);
+          const positionLoc = gl.getAttribLocation(program, "a_position");
+          const resolutionLoc = gl.getUniformLocation(program, "iResolution");
+          const mouseLoc = gl.getUniformLocation(program, "iMouse");
+          const timeLoc = gl.getUniformLocation(program, "iTime");
+          const vertices = new Float32Array([
+            -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
+          ]);
+          const vertexBuffer = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+          let then = 0;
+          let time = 0;
+          function render(now) {
+            requestId = undefined;
+            now *= 0.001; // convert to seconds
+            const elapsedTime = Math.min(now - then, 0.1);
+            time += elapsedTime;
+            then = now;
+
+            resizeCanvasToDisplaySize(gl.canvas);
+
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            gl.useProgram(program);
+            gl.enableVertexAttribArray(positionLoc);
+            gl.vertexAttribPointer(
+              positionLoc,
+              2, // 2 components per iteration
+              gl.FLOAT, // the data is 32bit floats
+              false, // don't normalize the data
+              0, // 0 = move forward size * sizeof(type) each iteration to get the next position
+              0 // start at the beginning of the buffer
+            );
+
+            gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
+            gl.uniform2f(mouseLoc, mouseX, mouseY);
+            gl.uniform1f(timeLoc, time);
+
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            requestFrame(render);
+          }
+
+          requestFrame(render);
+        }
+
+        // start rendering
+        updateShader(input.value);
+
+        // update on ctrl+enter
+        input.addEventListener("keydown", (e) => {
+          if (e.ctrlKey && e.key === "Enter") {
+            updateShader(input.value);
+            window.location.hash = "#" + btoa(input.value);
+            console.log("update", input.value);
+          }
+        });
+      }
+
+      main();
+
+      // the rest is boilerplate code, loosely based on https://webglfundamentals.org/webgl/resources/webgl-utils.js
+      /*
+       * Copyright 2021 GFXFundamentals.
+       * All rights reserved.
+       *
+       * Redistribution and use in source and binary forms, with or without
+       * modification, are permitted provided that the following conditions are
+       * met:
+       *
+       *     * Redistributions of source code must retain the above copyright
+       * notice, this list of conditions and the following disclaimer.
+       *     * Redistributions in binary form must reproduce the above
+       * copyright notice, this list of conditions and the following disclaimer
+       * in the documentation and/or other materials provided with the
+       * distribution.
+       *     * Neither the name of GFXFundamentals. nor the names of his
+       * contributors may be used to endorse or promote products derived from
+       * this software without specific prior written permission.
+       *
+       * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+       * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+       * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+       * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+       * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+       * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+       * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+       * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+       * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+       * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+       * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+       */
+      function loadShader(gl, shaderSource, shaderType) {
+        const shader = gl.createShader(shaderType);
+        gl.shaderSource(shader, shaderSource);
+        gl.compileShader(shader);
+        const compiled = gl.getShaderParameter(shader, gl.COMPILE_STATUS);
+        if (!compiled) {
+          const lastError = gl.getShaderInfoLog(shader);
+          console.error(
+            "*** Error compiling shader '" +
+              shader +
+              "':" +
+              lastError +
+              `\n` +
+              shaderSource
+                .split("\n")
+                .map((l, i) => `${i + 1}: ${l}`)
+                .join("\n")
+          );
+          gl.deleteShader(shader);
+          return null;
+        }
+
+        return shader;
+      }
+      function resizeCanvasToDisplaySize(canvas, multiplier) {
+        multiplier = multiplier || 1;
+        const width = (canvas.clientWidth * multiplier) | 0;
+        const height = (canvas.clientHeight * multiplier) | 0;
+        if (canvas.width !== width || canvas.height !== height) {
+          canvas.width = width;
+          canvas.height = height;
+          return true;
+        }
+        return false;
+      }
+      function createProgramFromSources(
+        gl,
+        shaderSources,
+        opt_attribs,
+        opt_locations
+      ) {
+        const shaders = [
+          loadShader(gl, shaderSources[0], gl.VERTEX_SHADER),
+          loadShader(gl, shaderSources[1], gl.FRAGMENT_SHADER),
+        ];
+        return createProgram(gl, shaders, opt_attribs, opt_locations);
+      }
+      function createProgram(gl, shaders, opt_attribs, opt_locations) {
+        const program = gl.createProgram();
+        shaders.forEach(function (shader) {
+          gl.attachShader(program, shader);
+        });
+        if (opt_attribs) {
+          opt_attribs.forEach(function (attrib, ndx) {
+            gl.bindAttribLocation(
+              program,
+              opt_locations ? opt_locations[ndx] : ndx,
+              attrib
+            );
+          });
+        }
+        gl.linkProgram(program);
+        const linked = gl.getProgramParameter(program, gl.LINK_STATUS);
+        if (!linked) {
+          const lastError = gl.getProgramInfoLog(program);
+          console.error("Error in program linking:" + lastError);
+          gl.deleteProgram(program);
+          return null;
+        }
+        return program;
+      }
+    </script>
+  </body>
+</html>
