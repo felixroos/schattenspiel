@@ -24,6 +24,7 @@
     ></textarea>
     <canvas id="canvas" style="width: 100%; height: 100%"></canvas>
     <script>
+      "use strict";
       const { registerNode, register } = kabelsalat;
 
       // hydra
@@ -51,6 +52,15 @@
       let osc = register(
         "osc",
         (freq = 60, sync = 0.1, offset = 0) => _osc(st, freq, sync, offset),
+        {}
+      );
+
+      let _solid = registerNode("_solid", {
+        compile: ({ vars, name }) => `vec4 ${name} = solid(${glslArgs(vars)});`,
+      });
+      let solid = register(
+        "solid",
+        (r, g, b, a = 1) => _solid(st, r, g, b, a),
         {}
       );
 
@@ -174,13 +184,9 @@
           kabelsalat.Node.prototype.out = function () {
             node = draw(this).exit();
           };
-          let scope = {
-            osc,
-            rotate,
-          };
-          const run = new Function(...Object.keys(scope), hydroCode);
+          const run = new Function(hydroCode);
 
-          run(...Object.values(scope));
+          run();
           const unit = node.compile();
           console.log(unit.src);
 
@@ -292,6 +298,10 @@
                   float g = sin((st.x + iTime * sync) * frequency) * 0.5 + 0.5;
                   float b = sin((st.x + offset / frequency + iTime * sync) * frequency) * 0.5 + 0.5;
                   return vec4(r, g, b, 1.0);
+                }
+                
+                vec4 solid(vec2 _st, float r, float g, float b, float a) {
+                  return vec4(r, g, b, a);
                 }
 
                 vec2 rotate(vec2 _st, float angle, float speed) {
