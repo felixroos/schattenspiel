@@ -322,6 +322,25 @@
         editGeometry(input, (st) => st._modulate(modulator, amount))
       );
 
+      let _modulateRepeat = registerNode("_modulateRepeat", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateRepeat(${glslArgs(vars)});`,
+      });
+      let modulateRepeat = register(
+        "modulateRepeat",
+        (
+          input,
+          texture,
+          repeatX = 3,
+          repeatY = 3,
+          offsetX = 0.5,
+          offsetY = 0.5
+        ) =>
+          editGeometry(input, (st) =>
+            st._modulateRepeat(texture, repeatX, repeatY, offsetX, offsetY)
+          )
+      );
+
       let draw = registerNode("draw", {
         compile: ({ vars, name }) => `fragColor = ${vars[0]};`,
       });
@@ -756,6 +775,15 @@
                     //  return fract(st+(_c0.xy-0.5)*amount);
                   return _st + _c0.xy * amount;
                 }
+
+                vec2 modulateRepeat(vec2 _st, vec4 _c0, float repeatX, float repeatY, float offsetX, float offsetY) {
+                  vec2 st = _st * vec2(repeatX, repeatY);
+                  st.x += step(1., mod(st.y, 2.0)) + _c0.r * offsetX;
+                  st.y += step(1., mod(st.x, 2.0)) + _c0.g * offsetY;
+                  return fract(st);
+                }
+
+                //
 
                 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
                   vec2 uv = fragCoord.xy / iResolution.xy;
