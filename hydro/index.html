@@ -107,18 +107,22 @@
 
       // GEOMETRY
 
+      function editGeometry(input, fn) {
+        let begin = input;
+        // we need to find the _st node first..
+        while (begin.ins[0].type !== "_st") {
+          begin = begin.ins[0];
+        }
+        begin.ins[0] = fn(begin.ins[0]);
+        return input;
+      }
+
       let _rotate = registerNode("_rotate", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = rotate(${glslArgs(vars)});`,
       });
-      let rotate = register(
-        "rotate",
-        (input, angle = 10, speed) =>
-          input.withIns(
-            _rotate(input.ins[0], angle, speed),
-            ...input.ins.slice(1)
-          ),
-        {}
+      let rotate = register("rotate", (input, angle = 10, speed = 0) =>
+        editGeometry(input, (st) => st._rotate(angle, speed))
       );
 
       let _scale = registerNode("_scale", {
@@ -134,25 +138,17 @@
           offsetX = 0.5,
           offsetY = 0.5
         ) =>
-          input.withIns(
-            _scale(input.ins[0], amount, xMult, yMult, offsetX, offsetY),
-            ...input.ins.slice(1)
-          ),
-        {}
+          editGeometry(input, (st) =>
+            st._scale(amount, xMult, yMult, offsetX, offsetY)
+          )
       );
 
       let _pixelate = registerNode("_pixelate", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = pixelate(${glslArgs(vars)});`,
       });
-      let pixelate = register(
-        "pixelate",
-        (input, pixelX = 20, pixelY = 20) =>
-          input.withIns(
-            _pixelate(input.ins[0], pixelX, pixelY),
-            ...input.ins.slice(1)
-          ),
-        {}
+      let pixelate = register("pixelate", (input, pixelX = 20, pixelY = 20) =>
+        editGeometry(input, (st) => st._pixelate(pixelX, pixelY))
       );
 
       let _repeat = registerNode("_repeat", {
@@ -162,50 +158,33 @@
       let repeat = register(
         "repeat",
         (input, repeatX = 3, repeatY = 3, offsetX, offsetY) =>
-          input.withIns(
-            _repeat(input.ins[0], repeatX, repeatY, offsetX, offsetY),
-            ...input.ins.slice(1)
-          ),
-        {}
+          editGeometry(input, (st) =>
+            st._repeat(repeatX, repeatY, offsetX, offsetY)
+          )
       );
 
       let _repeatX = registerNode("_repeatX", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = repeatX(${glslArgs(vars)});`,
       });
-      let repeatX = register(
-        "repeatX",
-        (input, reps = 3, offset = 0) =>
-          input.withIns(
-            _repeatX(input.ins[0], reps, offset),
-            ...input.ins.slice(1)
-          ),
-        {}
+      let repeatX = register("repeatX", (input, reps = 3, offset = 0) =>
+        editGeometry(input, (st) => st._repeatX(reps, offset))
       );
 
       let _repeatY = registerNode("_repeatY", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = repeatY(${glslArgs(vars)});`,
       });
-      let repeatY = register(
-        "repeatY",
-        (input, reps = 3, offset = 0) =>
-          input.withIns(
-            _repeatY(input.ins[0], reps, offset),
-            ...input.ins.slice(1)
-          ),
-        {}
+      let repeatY = register("repeatY", (input, reps = 3, offset = 0) =>
+        editGeometry(input, (st) => st._repeatY(reps, offset))
       );
 
       let _kaleid = registerNode("_kaleid", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = kaleid(${glslArgs(vars)});`,
       });
-      let kaleid = register(
-        "kaleid",
-        (input, nSides = 4) =>
-          input.withIns(_kaleid(input.ins[0], nSides), ...input.ins.slice(1)),
-        {}
+      let kaleid = register("kaleid", (input, nSides = 4) =>
+        editGeometry(input, (st) => st._kaleid(nSides))
       );
 
       let _scroll = registerNode("_scroll", {
@@ -215,39 +194,25 @@
       let scroll = register(
         "scroll",
         (input, scrollX = 0.5, scrollY = 0.5, speedX = 0, speedY = 0) =>
-          input.withIns(
-            _scroll(input.ins[0], scrollX, scrollY, speedX, speedY),
-            ...input.ins.slice(1)
-          ),
-        {}
+          editGeometry(input, (st) =>
+            st._scroll(scrollX, scrollY, speedX, speedY)
+          )
       );
 
       let _scrollX = registerNode("_scrollX", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = scrollX(${glslArgs(vars)});`,
       });
-      let scrollX = register(
-        "scrollX",
-        (input, scroll = 0.5, speed = 0) =>
-          input.withIns(
-            _scrollX(input.ins[0], scroll, speed),
-            ...input.ins.slice(1)
-          ),
-        {}
+      let scrollX = register("scrollX", (input, scroll = 0.5, speed = 0) =>
+        editGeometry(input, (st) => st._scrollX(scroll, speed))
       );
 
       let _scrollY = registerNode("_scrollY", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = scrollY(${glslArgs(vars)});`,
       });
-      let scrollY = register(
-        "scrollY",
-        (input, scroll = 0.5, speed = 0) =>
-          input.withIns(
-            _scrollY(input.ins[0], scroll, speed),
-            ...input.ins.slice(1)
-          ),
-        {}
+      let scrollY = register("scrollY", (input, scroll = 0.5, speed = 0) =>
+        editGeometry(input, (st) => st._scrollY(scroll, speed))
       );
 
       // Color
@@ -691,7 +656,8 @@
                 }
 
                 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
-                  vec2 st = fragCoord.xy / iResolution.xy; // TODO: this is still uv instead of st (y is flipped)
+                  vec2 uv = fragCoord.xy / iResolution.xy;
+                  vec2 st = vec2(uv.x, 1.0 - uv.y);   
                   ${unit.src}
                 }
                 void main() {
