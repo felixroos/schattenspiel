@@ -45,6 +45,8 @@
         compile: ({ name }) => `vec2 ${name} = st;`,
       });
 
+      // SOURCES
+
       let _osc = registerNode("_osc", {
         compile: ({ vars, name }) => `vec4 ${name} = osc(${glslArgs(vars)});`,
       });
@@ -63,16 +65,6 @@
         {}
       );
 
-      let _gradient = registerNode("_gradient", {
-        compile: ({ vars, name }) =>
-          `vec4 ${name} = gradient(${glslArgs(vars)});`,
-      });
-      let gradient = register(
-        "gradient",
-        (speed = 0) => _gradient(st, speed),
-        {}
-      );
-
       let _voronoi = registerNode("_voronoi", {
         compile: ({ vars, name }) =>
           `vec4 ${name} = voronoi(${glslArgs(vars)});`,
@@ -81,6 +73,16 @@
         "voronoi",
         (scale = 5, speed = 0.3, blending = 0.3) =>
           _voronoi(st, scale, speed, blending),
+        {}
+      );
+
+      let _gradient = registerNode("_gradient", {
+        compile: ({ vars, name }) =>
+          `vec4 ${name} = gradient(${glslArgs(vars)});`,
+      });
+      let gradient = register(
+        "gradient",
+        (speed = 0) => _gradient(st, speed),
         {}
       );
 
@@ -103,11 +105,12 @@
         {}
       );
 
+      // GEOMETRY
+
       let _rotate = registerNode("_rotate", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = rotate(${glslArgs(vars)});`,
       });
-
       let rotate = register(
         "rotate",
         (input, angle = 10, speed) =>
@@ -117,6 +120,95 @@
           ),
         {}
       );
+
+      let _scale = registerNode("_scale", {
+        compile: ({ vars, name }) => `vec2 ${name} = scale(${glslArgs(vars)});`,
+      });
+      let scale = register(
+        "scale",
+        (
+          input,
+          amount = 1.5,
+          xMult = 1,
+          yMult = 1,
+          offsetX = 0.5,
+          offsetY = 0.5
+        ) =>
+          input.withIns(
+            _scale(input.ins[0], amount, xMult, yMult, offsetX, offsetY),
+            ...input.ins.slice(1)
+          ),
+        {}
+      );
+
+      let _pixelate = registerNode("_pixelate", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = pixelate(${glslArgs(vars)});`,
+      });
+      let pixelate = register(
+        "pixelate",
+        (input, pixelX = 20, pixelY = 20) =>
+          input.withIns(
+            _pixelate(input.ins[0], pixelX, pixelY),
+            ...input.ins.slice(1)
+          ),
+        {}
+      );
+
+      let _repeat = registerNode("_repeat", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = repeat(${glslArgs(vars)});`,
+      });
+      let repeat = register(
+        "repeat",
+        (input, repeatX = 3, repeatY = 3, offsetX, offsetY) =>
+          input.withIns(
+            _repeat(input.ins[0], repeatX, repeatY, offsetX, offsetY),
+            ...input.ins.slice(1)
+          ),
+        {}
+      );
+
+      let _repeatX = registerNode("_repeatX", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = repeatX(${glslArgs(vars)});`,
+      });
+      let repeatX = register(
+        "repeatX",
+        (input, reps = 3, offset = 0) =>
+          input.withIns(
+            _repeatX(input.ins[0], reps, offset),
+            ...input.ins.slice(1)
+          ),
+        {}
+      );
+
+      let _repeatY = registerNode("_repeatY", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = repeatY(${glslArgs(vars)});`,
+      });
+      let repeatY = register(
+        "repeatY",
+        (input, reps = 3, offset = 0) =>
+          input.withIns(
+            _repeatY(input.ins[0], reps, offset),
+            ...input.ins.slice(1)
+          ),
+        {}
+      );
+
+      let _kaleid = registerNode("_kaleid", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = kaleid(${glslArgs(vars)});`,
+      });
+      let kaleid = register(
+        "kaleid",
+        (input, nSides = 4) =>
+          input.withIns(_kaleid(input.ins[0], nSides), ...input.ins.slice(1)),
+        {}
+      );
+
+      //////////
 
       let mult = registerNode("mult", {
         compile: ({ vars: [input, texture, amount = 1], name }) => {
@@ -349,6 +441,50 @@
                   xy = mat2(cos(ang), -sin(ang), sin(ang), cos(ang)) * xy;
                   xy += 0.5;
                   return xy;
+                }
+
+                vec2 scale(vec2 _st, float amount, float xMult, float yMult, float offsetX, float offsetY) {
+                  vec2 xy = _st - vec2(offsetX, offsetY);
+                  xy *= (1.0 / vec2(amount * xMult, amount * yMult));
+                  xy += vec2(offsetX, offsetY);
+                  return xy;
+                }
+                
+                vec2 pixelate(vec2 _st, float pixelX, float pixelY) {
+                  vec2 xy = vec2(pixelX, pixelY);
+                  return (floor(_st * xy) + 0.5) / xy;
+                }
+
+                vec2 repeat(vec2 _st, float repeatX, float repeatY, float offsetX, float offsetY) {
+                  vec2 st = _st * vec2(repeatX, repeatY);
+                  st.x += step(1., mod(st.y, 2.0)) * offsetX;
+                  st.y += step(1., mod(st.x, 2.0)) * offsetY;
+                  return fract(st);
+                }
+
+                vec2 repeatX(vec2 _st, float reps, float offset) {
+                  vec2 st = _st * vec2(reps, 1.0);
+                  //  float f =  mod(_st.y,2.0);
+                  st.y += step(1., mod(st.x, 2.0)) * offset;
+                  return fract(st);
+                }
+
+                vec2 repeatY(vec2 _st, float reps, float offset) {
+                  vec2 st = _st * vec2(1.0, reps);
+                  //  float f =  mod(_st.y,2.0);
+                  st.x += step(1., mod(st.y, 2.0)) * offset;
+                  return fract(st);
+                }
+
+                vec2 kaleid(vec2 _st, float nSides) {
+                  vec2 st = _st;
+                  st -= 0.5;
+                  float r = length(st);
+                  float a = atan(st.y, st.x);
+                  float pi = 2. * 3.1416;
+                  a = mod(a, pi / nSides);
+                  a = abs(a - pi / nSides / 2.);
+                  return r * vec2(cos(a), sin(a));
                 }
 
                 vec4 mult(vec4 _c0, vec4 _c1, float amount) {
