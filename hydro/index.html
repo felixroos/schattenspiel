@@ -318,15 +318,8 @@
         compile: ({ vars, name }) =>
           `vec2 ${name} = modulate(${glslArgs(vars)});`,
       });
-
-      let modulate = register(
-        "modulate",
-        (input, modulator, amount) =>
-          input.withIns(
-            _modulate(input.ins[0], modulator, amount),
-            ...input.ins.slice(1)
-          ),
-        {}
+      let modulate = register("modulate", (input, modulator, amount = 0.1) =>
+        editGeometry(input, (st) => st._modulate(modulator, amount))
       );
 
       let draw = registerNode("draw", {
