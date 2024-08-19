@@ -278,13 +278,41 @@
           `vec4 ${name} = a(${glslArgs([input, scale, offset])});`,
       });
 
-      //////////
+      // blend
 
+      let add = registerNode("add", {
+        compile: ({ vars: [input, texture, amount = 1], name }) =>
+          `vec4 ${name} = add(${glslArgs([input, texture, amount])});`,
+      });
+      let sub = registerNode("sub", {
+        compile: ({ vars: [input, texture, amount = 1], name }) =>
+          `vec4 ${name} = sub(${glslArgs([input, texture, amount])});`,
+      });
+      let layer = registerNode("layer", {
+        compile: ({ vars: [input, texture], name }) =>
+          `vec4 ${name} = layer(${glslArgs([input, texture])});`,
+      });
+      let blend = registerNode("blend", {
+        compile: ({ vars: [input, texture, amount = 0.5], name }) =>
+          `vec4 ${name} = blend(${glslArgs([input, texture, amount])});`,
+      });
       let mult = registerNode("mult", {
         compile: ({ vars: [input, texture, amount = 1], name }) => {
           return `vec4 ${name} = mult(${glslArgs([input, texture, amount])});`;
         },
       });
+      let diff = registerNode("diff", {
+        compile: ({ vars: [input, texture], name }) => {
+          return `vec4 ${name} = diff(${glslArgs([input, texture])});`;
+        },
+      });
+      let mask = registerNode("mask", {
+        compile: ({ vars: [input, texture], name }) => {
+          return `vec4 ${name} = mask(${glslArgs([input, texture])});`;
+        },
+      });
+
+      // modulate
 
       let _modulate = registerNode("_modulate", {
         compile: ({ vars, name }) =>
@@ -552,10 +580,6 @@
                   return r * vec2(cos(a), sin(a));
                 }
 
-                vec4 mult(vec4 _c0, vec4 _c1, float amount) {
-                  return _c0 * (1.0 - amount) + (_c0 * _c1) * amount;
-                }
-
                 vec4 color(vec4 _c0, float r, float g, float b, float a) {
                   vec4 c = vec4(r, g, b, a);
                   vec4 pos = step(0.0, c); // detect whether negative
@@ -701,6 +725,39 @@
                 vec4 a(vec4 _c0, float scale, float offset) {
                   return vec4(_c0.a * scale + offset);
                 }
+
+                // blend
+
+                vec4 add(vec4 _c0, vec4 _c1, float amount) {
+                  return (_c0 + _c1) * amount + _c0 * (1.0 - amount);
+                }
+
+                vec4 sub(vec4 _c0, vec4 _c1, float amount) {
+                  return (_c0 - _c1) * amount + _c0 * (1.0 - amount);
+                }
+
+                vec4 layer(vec4 _c0, vec4 _c1) {
+                  return vec4(mix(_c0.rgb, _c1.rgb, _c1.a), clamp(_c0.a + _c1.a, 0.0, 1.0));
+                }
+
+                vec4 blend(vec4 _c0, vec4 _c1, float amount) {
+                  return _c0 * (1.0 - amount) + _c1 * amount;
+                }
+
+                vec4 mult(vec4 _c0, vec4 _c1, float amount) {
+                  return _c0 * (1.0 - amount) + (_c0 * _c1) * amount;
+                }
+
+                vec4 diff(vec4 _c0, vec4 _c1) {
+                  return vec4(abs(_c0.rgb - _c1.rgb), max(_c0.a, _c1.a));
+                }
+
+                vec4 mask(vec4 _c0, vec4 _c1) {
+                  float a = _luminance(_c1.rgb);
+                  return vec4(_c0.rgb * a, a * _c0.a);
+                }
+
+                // modulate
 
                 vec2 modulate(vec2 _st, vec4 _c0, float amount) {
                     //  return fract(st+(_c0.xy-0.5)*amount);
