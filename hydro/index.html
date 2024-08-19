@@ -253,6 +253,30 @@
         compile: ({ vars: [input, amount = 2], name }) =>
           `vec4 ${name} = saturate(${glslArgs([input, amount])});`,
       });
+      let hue = registerNode("hue", {
+        compile: ({ vars: [input, hue = 0.4], name }) =>
+          `vec4 ${name} = hue(${glslArgs([input, hue])});`,
+      });
+      let colorama = registerNode("colorama", {
+        compile: ({ vars: [input, amount = 0.005], name }) =>
+          `vec4 ${name} = colorama(${glslArgs([input, amount])});`,
+      });
+      let r = registerNode("r", {
+        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
+          `vec4 ${name} = r(${glslArgs([input, scale, offset])});`,
+      });
+      let g = registerNode("g", {
+        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
+          `vec4 ${name} = g(${glslArgs([input, scale, offset])});`,
+      });
+      let b = registerNode("b", {
+        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
+          `vec4 ${name} = b(${glslArgs([input, scale, offset])});`,
+      });
+      let a = registerNode("a", {
+        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
+          `vec4 ${name} = a(${glslArgs([input, scale, offset])});`,
+      });
 
       //////////
 
@@ -648,6 +672,34 @@
                   const vec3 W = vec3(0.2125, 0.7154, 0.0721);
                   vec3 intensity = vec3(dot(_c0.rgb, W));
                   return vec4(mix(intensity, _c0.rgb, amount), _c0.a);
+                }
+
+                vec4 hue(vec4 _c0, float hue) {
+                  vec3 c = _rgbToHsv(_c0.rgb);
+                  c.r += hue;
+                  //  c.r = fract(c.r);
+                  return vec4(_hsvToRgb(c), _c0.a);
+                }
+
+                vec4 colorama(vec4 _c0, float amount) {
+                  vec3 c = _rgbToHsv(_c0.rgb);
+                  c += vec3(amount);
+                  c = _hsvToRgb(c);
+                  c = fract(c);
+                  return vec4(c, _c0.a);
+                }
+
+                vec4 r(vec4 _c0, float scale, float offset) {
+                  return vec4(_c0.r * scale + offset);
+                }
+                vec4 g(vec4 _c0, float scale, float offset) {
+                  return vec4(_c0.g * scale + offset);
+                }
+                vec4 b(vec4 _c0, float scale, float offset) {
+                  return vec4(_c0.b * scale + offset);
+                }
+                vec4 a(vec4 _c0, float scale, float offset) {
+                  return vec4(_c0.a * scale + offset);
                 }
 
                 vec2 modulate(vec2 _st, vec4 _c0, float amount) {
