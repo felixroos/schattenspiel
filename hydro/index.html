@@ -157,7 +157,7 @@
       });
       let repeat = register(
         "repeat",
-        (input, repeatX = 3, repeatY = 3, offsetX, offsetY) =>
+        (input, repeatX = 3, repeatY = 3, offsetX = 0, offsetY = 0) =>
           editGeometry(input, (st) =>
             st._repeat(repeatX, repeatY, offsetX, offsetY)
           )
