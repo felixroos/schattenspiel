@@ -107,6 +107,13 @@
 
       // GEOMETRY
 
+      // TODO: rn, modulation sources won't be edited.. example:
+      /*
+      osc()
+      .mult(osc(4,0.25,1))
+      .scale(.5,0.5,0.5) // <- in hydra, this is also applied to osc inside mult..
+      .out()
+      */
       function editGeometry(input, fn) {
         let begin = input;
         // we need to find the _st node first..
@@ -338,6 +345,18 @@
         ) =>
           editGeometry(input, (st) =>
             st._modulateRepeat(texture, repeatX, repeatY, offsetX, offsetY)
+          )
+      );
+
+      let _modulateRepeatX = registerNode("_modulateRepeatX", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateRepeatX(${glslArgs(vars)});`,
+      });
+      let modulateRepeatX = register(
+        "modulateRepeatX",
+        (input, texture, reps = 3, offset = 0.5) =>
+          editGeometry(input, (st) =>
+            st._modulateRepeatX(texture, reps, offset)
           )
       );
 
@@ -780,6 +799,13 @@
                   vec2 st = _st * vec2(repeatX, repeatY);
                   st.x += step(1., mod(st.y, 2.0)) + _c0.r * offsetX;
                   st.y += step(1., mod(st.x, 2.0)) + _c0.g * offsetY;
+                  return fract(st);
+                }
+
+                vec2 modulateRepeatX(vec2 _st, vec4 _c0, float reps, float offset) {
+                  vec2 st = _st * vec2(reps, 1.0);
+                  //  float f =  mod(_st.y,2.0);
+                  st.y += step(1., mod(st.x, 2.0)) + _c0.r * offset;
                   return fract(st);
                 }
 
