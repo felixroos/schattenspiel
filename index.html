@@ -1,8 +1,23 @@
 <html style="height: 100%; width: 100%">
   <head>
     <title>schattenspiel</title>
+    <style>
+      details {
+        z-index:1000;
+        float: right;
+        bottom: 40px;
+        right:  10px;
+        height: 20px;
+
+        position: fixed;
+      }
+    </style>
   </head>
   <body style="height: 100%; width: 100%; margin: 0; background-color: white">
+    <details >
+      <summary>Websocket</summary>
+    <input id="server_url" value="ws://host:port/roomname/username"/><button id="do_grabber">Grabber</button><button id="do_sender">Sender</button>
+    </details>    
     <textarea
       id="code"
       style="
@@ -50,16 +65,46 @@
         window.codestyle = (attr, value) => (input.style[attr] = value);
 
         // vertex shader
-        const vs = `
-          attribute vec4 a_position;
+        const vs = `#version 300 es
+          in vec4 a_position;
           void main() {
             gl_Position = a_position;
           }
         `;
+        const server_url = document.getElementById("server_url");
+        const do_grabber_btn = document.getElementById("do_grabber");
+        const do_sender_btn = document.getElementById("do_sender");
+        let ws_client = undefined;
+        let last_fs = ""
+        do_grabber_btn.onclick = () => {
+          do_grabber_btn.style.color = '#00FF00';
+          do_grabber_btn.style.background = '#008800';
+          do_sender_btn.style.color = '#FF0000';
+          do_sender_btn.style.background = '#880000';
+        if(ws_client !== undefined) {
+            ws_client.close();
+            }
+            ws_client =  new WebSocket(server_url.value);
+            ws_client.onmessage = (event) => {
+              updateShader(event.data);
+              };
 
+        }
+        do_sender_btn.onclick = () => {
+          do_sender_btn.style.color = '#00FF00';
+          do_sender_btn.style.background = '#008800';
+          do_grabber_btn.style.color = '#FF0000';
+          do_grabber_btn.style.background = '#880000';
+           if(ws_client !== undefined) {
+            ws_client.close();
+           }
+           ws_client =  new WebSocket(server_url.value);
+           setInterval(() => ws_client.send(last_fs), 500);
+           
+        }
         // set up canvas
         const canvas = document.querySelector("#canvas");
-        const gl = canvas.getContext("webgl");
+        const gl = canvas.getContext("webgl2");
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width; // * window.devicePixelRatio;
         canvas.height = rect.height; // * window.devicePixelRatio;
@@ -87,18 +132,23 @@
           }
         }
 
+        // Time need to keep continuing to avoid reloading each time shader change
+        let then = 0;
+        let time = 0;
         // runs on eval
         function updateShader(mainImageFunction) {
           // fragment shader
-          const fs = `
+          const fs = `#version 300 es
           precision highp float;
           uniform vec2 iResolution;
           uniform vec2 iMouse;
           uniform float iTime;
+          out vec4 fragColor;
           ${mainImageFunction}
           void main() {
-            mainImage(gl_FragColor, gl_FragCoord.xy);
+            mainImage(fragColor, gl_FragCoord.xy);
           }`;
+          last_fs = mainImageFunction;
           cancelFrame();
           const program = createProgramFromSources(gl, [vs, fs]);
           const positionLoc = gl.getAttribLocation(program, "a_position");
@@ -112,8 +162,7 @@
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
           gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
-          let then = 0;
-          let time = 0;
+       
           function render(now) {
             requestId = undefined;
             now *= 0.001; // convert to seconds
