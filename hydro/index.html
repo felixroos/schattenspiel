@@ -107,20 +107,15 @@
 
       // GEOMETRY
 
-      // TODO: rn, modulation sources won't be edited.. example:
-      /*
-      osc()
-      .mult(osc(4,0.25,1))
-      .scale(.5,0.5,0.5) // <- in hydra, this is also applied to osc inside mult..
-      .out()
-      */
       function editGeometry(input, fn) {
-        let begin = input;
-        // we need to find the _st node first..
-        while (begin.ins[0].type !== "_st") {
-          begin = begin.ins[0];
-        }
-        begin.ins[0] = fn(begin.ins[0]);
+        // we need to edit all _st nodes in all parents
+        input.dfs((node, visited) => {
+          if (node.ins[0]?.type === "_st") {
+            node.ins[0] = fn(node.ins[0]);
+            visited.push(node.ins[0]); // prevents inifinite loop
+          }
+          return node;
+        });
         return input;
       }
 
@@ -957,7 +952,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
   vec2 st = vec2(uv.x, 1.0 - uv.y);   
   ${unit.src}
 }`;
-          console.log(shadertoy);
+          // console.log(shadertoy);
           return `
 ${head}
 ${shadertoy}
