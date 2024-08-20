@@ -95,6 +95,8 @@
           uniform vec2 iResolution;
           uniform vec2 iMouse;
           uniform float iTime;
+          uniform sampler2D iFeedback;
+
           ${mainImageFunction}
           void main() {
             mainImage(gl_FragColor, gl_FragCoord.xy);
@@ -111,6 +113,9 @@
           const vertexBuffer = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
           gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+          // set up feedback ping pong textures
+          let [tex0, tex1] = [makeTexture(gl), makeTexture(gl)];
+          const framebuffer = gl.createFramebuffer();
 
           let then = 0;
           let time = 0;
@@ -123,23 +128,32 @@
 
             resizeCanvasToDisplaySize(gl.canvas);
 
+            gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+            gl.framebufferTexture2D(
+              gl.FRAMEBUFFER,
+              gl.COLOR_ATTACHMENT0,
+              gl.TEXTURE_2D,
+              tex0,
+              0
+            );
+
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             gl.useProgram(program);
             gl.enableVertexAttribArray(positionLoc);
-            gl.vertexAttribPointer(
-              positionLoc,
-              2, // 2 components per iteration
-              gl.FLOAT, // the data is 32bit floats
-              false, // don't normalize the data
-              0, // 0 = move forward size * sizeof(type) each iteration to get the next position
-              0 // start at the beginning of the buffer
-            );
+            gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
 
             gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
             gl.uniform2f(mouseLoc, mouseX, mouseY);
             gl.uniform1f(timeLoc, time);
 
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            gl.uniform1i(gl.getUniformLocation(program, "iFeedback"), 0);
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(gl.TEXTURE_2D, tex1);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); // draw to texture
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            [tex0, tex1] = [tex1, tex0];
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); // draw to canvas
+
             requestFrame(render);
           }
 
@@ -160,6 +174,28 @@
       }
 
       main();
+
+      function makeTexture(gl) {
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          canvas.width,
+          canvas.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        return texture;
+      }
 
       // the rest is boilerplate code, loosely based on https://webglfundamentals.org/webgl/resources/webgl-utils.js
       /*

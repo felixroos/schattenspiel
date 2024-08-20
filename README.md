@@ -34,6 +34,7 @@ The following uniforms are defined from the outside:
 - `uniform vec2 iResolution`: width and height of the canvas
 - `uniform float iTime`: Elapsed time in seconds
 - `uniform vec2 iMouse`: X,Y Mouse position
+- `uniform sampler2D iFeedback`: previous frame texture. Usage: `vec4 prevColor = texture2D(iFeedback, uv);`. This is not available in shadertoy.
 
 ### Helpers
 
