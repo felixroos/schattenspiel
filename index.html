@@ -88,6 +88,8 @@
         }
 
         // runs on eval
+        let then = 0;
+        let time = 0;
         function updateShader(mainImageFunction) {
           // fragment shader
           const fs = `
@@ -117,8 +119,6 @@
           let [tex0, tex1] = [makeTexture(gl), makeTexture(gl)];
           const framebuffer = gl.createFramebuffer();
 
-          let then = 0;
-          let time = 0;
           function render(now) {
             requestId = undefined;
             now *= 0.001; // convert to seconds
