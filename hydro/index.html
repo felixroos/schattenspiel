@@ -360,6 +360,97 @@
           )
       );
 
+      let _modulateRepeatY = registerNode("_modulateRepeatY", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateRepeatY(${glslArgs(vars)});`,
+      });
+      let modulateRepeatY = register(
+        "modulateRepeatY",
+        (input, texture, reps = 3, offset = 0.5) =>
+          editGeometry(input, (st) =>
+            st._modulateRepeatY(texture, reps, offset)
+          )
+      );
+
+      let _modulateKaleid = registerNode("_modulateKaleid", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateKaleid(${glslArgs(vars)});`,
+      });
+      let modulateKaleid = register(
+        "modulateKaleid",
+        (input, texture, nSides = 4) =>
+          editGeometry(input, (st) => st._modulateKaleid(texture, nSides))
+      );
+
+      let _modulateScrollX = registerNode("_modulateScrollX", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateScrollX(${glslArgs(vars)});`,
+      });
+      let modulateScrollX = register(
+        "modulateScrollX",
+        (input, texture, scrollX = 0.5, speed = 0) =>
+          editGeometry(input, (st) =>
+            st._modulateScrollX(texture, scrollX, speed)
+          )
+      );
+
+      let _modulateScrollY = registerNode("_modulateScrollY", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateScrollY(${glslArgs(vars)});`,
+      });
+      let modulateScrollY = register(
+        "modulateScrollY",
+        (input, texture, scrollY = 0.5, speed = 0) =>
+          editGeometry(input, (st) =>
+            st._modulateScrollY(texture, scrollY, speed)
+          )
+      );
+
+      let _modulateScale = registerNode("_modulateScale", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateScale(${glslArgs(vars)});`,
+      });
+      let modulateScale = register(
+        "modulateScale",
+        (input, texture, multiple = 1, offset = 1) =>
+          editGeometry(input, (st) =>
+            st._modulateScale(texture, multiple, offset)
+          )
+      );
+
+      let _modulatePixelate = registerNode("_modulatePixelate", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulatePixelate(${glslArgs(vars)});`,
+      });
+      let modulatePixelate = register(
+        "modulatePixelate",
+        (input, texture, multiple = 10, offset = 13) =>
+          editGeometry(input, (st) =>
+            st._modulatePixelate(texture, multiple, offset)
+          )
+      );
+
+      let _modulateRotate = registerNode("_modulateRotate", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateRotate(${glslArgs(vars)});`,
+      });
+      let modulateRotate = register(
+        "modulateRotate",
+        (input, texture, multiple = 1, offset = 0) =>
+          editGeometry(input, (st) =>
+            st._modulateRotate(texture, multiple, offset)
+          )
+      );
+
+      // TODO: find way to test this (without feedback)
+      let _modulateHue = registerNode("_modulateHue", {
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = modulateHue(${glslArgs(vars)});`,
+      });
+      let modulateHue = register("modulateHue", (input, texture, amount = 1) =>
+        editGeometry(input, (st) => st._modulateHue(texture, amount))
+      );
+
       let draw = registerNode("draw", {
         compile: ({ vars, name }) => `fragColor = ${vars[0]};`,
       });
@@ -809,6 +900,57 @@
                   return fract(st);
                 }
 
+                vec2 modulateRepeatY(vec2 _st, vec4 _c0, float reps, float offset) {
+                  vec2 st = _st * vec2(reps, 1.0);
+                  //  float f =  mod(_st.y,2.0);
+                  st.x += step(1., mod(st.y, 2.0)) + _c0.r * offset;
+                  return fract(st);
+                }
+
+                vec2 modulateKaleid(vec2 _st, vec4 _c0, float nSides) {
+                  vec2 st = _st - 0.5;
+                  float r = length(st);
+                  float a = atan(st.y, st.x);
+                  float pi = 2. * 3.1416;
+                  a = mod(a, pi / nSides);
+                  a = abs(a - pi / nSides / 2.);
+                  return (_c0.r + r) * vec2(cos(a), sin(a));
+                }
+
+                vec2 modulateScrollX(vec2 _st, vec4 _c0, float scrollX, float speed) {
+                  _st.x += _c0.r * scrollX + iTime * speed;
+                  return fract(_st);
+                }
+
+                vec2 modulateScrollY(vec2 _st, vec4 _c0, float scrollY, float speed) {
+                  _st.y += _c0.r * scrollY + iTime * speed;
+                  return fract(_st);
+                }
+
+                vec2 modulateScale(vec2 _st, vec4 _c0, float multiple, float offset) {
+                  vec2 xy = _st - vec2(0.5);
+                  xy *= (1.0 / vec2(offset + multiple * _c0.r, offset + multiple * _c0.g));
+                  xy += vec2(0.5);
+                  return xy;
+                }
+
+                vec2 modulatePixelate(vec2 _st, vec4 _c0, float multiple, float offset) {
+                  vec2 xy = vec2(offset + _c0.x * multiple, offset + _c0.y * multiple);
+                  return (floor(_st * xy) + 0.5) / xy;
+                }
+
+                vec2 modulateRotate(vec2 _st, vec4 _c0, float multiple, float offset) {
+                  vec2 xy = _st - vec2(0.5);
+                  float angle = offset + _c0.x * multiple;
+                  xy = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * xy;
+                  xy += 0.5;
+                  return xy;
+                }
+
+                vec2 modulateHue(vec2 _st, vec4 _c0, float amount) {
+                  return _st + (vec2(_c0.g - _c0.r, _c0.b - _c0.g) * amount * 1.0 / iResolution);
+                }
+
                 //
 
                 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
@@ -841,7 +983,7 @@
             time += elapsedTime;
             then = now;
 
-            resizeCanvasToDisplaySize(gl.canvas);
+            resizeCanvasToDisplaySize(gl.canvas, window.devicePixelRatio);
 
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             gl.useProgram(program);
