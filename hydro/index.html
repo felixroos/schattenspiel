@@ -17,7 +17,7 @@
         outline: none;
         padding: 10px;
         resize: none;
-        color: black;
+        color: white;
         font-size: 16px;
       "
       spellcheck="false"
@@ -28,7 +28,7 @@
       const { registerNode, register } = kabelsalat;
 
       // hydra
-      let glslArgs = (args) =>
+      let glslArgs = (...args) =>
         args
           .map((arg) => {
             if (isNaN(Number(arg))) {
@@ -44,66 +44,56 @@
       let _st = registerNode("_st", {
         compile: ({ name }) => `vec2 ${name} = st;`,
       });
+      let st = _st();
 
       // SOURCES
-
       let _osc = registerNode("_osc", {
-        compile: ({ vars, name }) => `vec4 ${name} = osc(${glslArgs(vars)});`,
+        compile: ({ vars, name }) =>
+          `vec4 ${name} = osc(${glslArgs(...vars)});`,
       });
-      let osc = register(
-        "osc",
-        (freq = 60, sync = 0.1, offset = 0) => _osc(st, freq, sync, offset),
-        {}
+      let osc = register("osc", (freq = 60, sync = 0.1, offset = 0) =>
+        _osc(st, freq, sync, offset)
       );
 
       let _noise = registerNode("_noise", {
-        compile: ({ vars, name }) => `vec4 ${name} = noise(${glslArgs(vars)});`,
+        compile: ({ vars, name }) =>
+          `vec4 ${name} = noise(${glslArgs(...vars)});`,
       });
-      let noise = register(
-        "noise",
-        (scale = 10, offset = 0.1) => _noise(st, scale, offset),
-        {}
+      let noise = register("noise", (scale = 10, offset = 0.1) =>
+        _noise(st, scale, offset)
       );
 
       let _voronoi = registerNode("_voronoi", {
         compile: ({ vars, name }) =>
-          `vec4 ${name} = voronoi(${glslArgs(vars)});`,
+          `vec4 ${name} = voronoi(${glslArgs(...vars)});`,
       });
       let voronoi = register(
         "voronoi",
         (scale = 5, speed = 0.3, blending = 0.3) =>
-          _voronoi(st, scale, speed, blending),
-        {}
+          _voronoi(st, scale, speed, blending)
       );
 
       let _gradient = registerNode("_gradient", {
         compile: ({ vars, name }) =>
-          `vec4 ${name} = gradient(${glslArgs(vars)});`,
+          `vec4 ${name} = gradient(${glslArgs(...vars)});`,
       });
-      let gradient = register(
-        "gradient",
-        (speed = 0) => _gradient(st, speed),
-        {}
-      );
+      let gradient = register("gradient", (speed = 0) => _gradient(st, speed));
 
       let _shape = registerNode("_shape", {
-        compile: ({ vars, name }) => `vec4 ${name} = shape(${glslArgs(vars)});`,
+        compile: ({ vars, name }) =>
+          `vec4 ${name} = shape(${glslArgs(...vars)});`,
       });
       let shape = register(
         "shape",
         (sides = 3, radius = 0.3, smoothing = 0.01) =>
-          _shape(st, sides, radius, smoothing),
-        {}
+          _shape(st, sides, radius, smoothing)
       );
 
       let _solid = registerNode("_solid", {
-        compile: ({ vars, name }) => `vec4 ${name} = solid(${glslArgs(vars)});`,
+        compile: ({ vars, name }) =>
+          `vec4 ${name} = solid(${glslArgs(...vars)});`,
       });
-      let solid = register(
-        "solid",
-        (r, g, b, a = 1) => _solid(st, r, g, b, a),
-        {}
-      );
+      let solid = register("solid", (r, g, b, a = 1) => _solid(st, r, g, b, a));
 
       // GEOMETRY
 
@@ -121,14 +111,15 @@
 
       let _rotate = registerNode("_rotate", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = rotate(${glslArgs(vars)});`,
+          `vec2 ${name} = rotate(${glslArgs(...vars)});`,
       });
       let rotate = register("rotate", (input, angle = 10, speed = 0) =>
         editGeometry(input, (st) => st._rotate(angle, speed))
       );
 
       let _scale = registerNode("_scale", {
-        compile: ({ vars, name }) => `vec2 ${name} = scale(${glslArgs(vars)});`,
+        compile: ({ vars, name }) =>
+          `vec2 ${name} = scale(${glslArgs(...vars)});`,
       });
       let scale = register(
         "scale",
@@ -147,7 +138,7 @@
 
       let _pixelate = registerNode("_pixelate", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = pixelate(${glslArgs(vars)});`,
+          `vec2 ${name} = pixelate(${glslArgs(...vars)});`,
       });
       let pixelate = register("pixelate", (input, pixelX = 20, pixelY = 20) =>
         editGeometry(input, (st) => st._pixelate(pixelX, pixelY))
@@ -155,7 +146,7 @@
 
       let _repeat = registerNode("_repeat", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = repeat(${glslArgs(vars)});`,
+          `vec2 ${name} = repeat(${glslArgs(...vars)});`,
       });
       let repeat = register(
         "repeat",
@@ -167,7 +158,7 @@
 
       let _repeatX = registerNode("_repeatX", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = repeatX(${glslArgs(vars)});`,
+          `vec2 ${name} = repeatX(${glslArgs(...vars)});`,
       });
       let repeatX = register("repeatX", (input, reps = 3, offset = 0) =>
         editGeometry(input, (st) => st._repeatX(reps, offset))
@@ -175,7 +166,7 @@
 
       let _repeatY = registerNode("_repeatY", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = repeatY(${glslArgs(vars)});`,
+          `vec2 ${name} = repeatY(${glslArgs(...vars)});`,
       });
       let repeatY = register("repeatY", (input, reps = 3, offset = 0) =>
         editGeometry(input, (st) => st._repeatY(reps, offset))
@@ -183,7 +174,7 @@
 
       let _kaleid = registerNode("_kaleid", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = kaleid(${glslArgs(vars)});`,
+          `vec2 ${name} = kaleid(${glslArgs(...vars)});`,
       });
       let kaleid = register("kaleid", (input, nSides = 4) =>
         editGeometry(input, (st) => st._kaleid(nSides))
@@ -191,7 +182,7 @@
 
       let _scroll = registerNode("_scroll", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = scroll(${glslArgs(vars)});`,
+          `vec2 ${name} = scroll(${glslArgs(...vars)});`,
       });
       let scroll = register(
         "scroll",
@@ -203,7 +194,7 @@
 
       let _scrollX = registerNode("_scrollX", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = scrollX(${glslArgs(vars)});`,
+          `vec2 ${name} = scrollX(${glslArgs(...vars)});`,
       });
       let scrollX = register("scrollX", (input, scroll = 0.5, speed = 0) =>
         editGeometry(input, (st) => st._scrollX(scroll, speed))
@@ -211,7 +202,7 @@
 
       let _scrollY = registerNode("_scrollY", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = scrollY(${glslArgs(vars)});`,
+          `vec2 ${name} = scrollY(${glslArgs(...vars)});`,
       });
       let scrollY = register("scrollY", (input, scroll = 0.5, speed = 0) =>
         editGeometry(input, (st) => st._scrollY(scroll, speed))
@@ -221,96 +212,96 @@
 
       let posterize = registerNode("posterize", {
         compile: ({ vars: [input, bins = 3, gamma = 0.6], name }) =>
-          `vec4 ${name} = posterize(${glslArgs([input, bins, gamma])});`,
+          `vec4 ${name} = posterize(${glslArgs(input, bins, gamma)});`,
       });
       let shift = registerNode("shift", {
         compile: ({ vars: [input, r = 0.5, g = 0, b = 0, a = 0], name }) =>
-          `vec4 ${name} = shift(${glslArgs([input, r, g, b, a])});`,
+          `vec4 ${name} = shift(${glslArgs(input, r, g, b, a)});`,
       });
       let invert = registerNode("invert", {
         compile: ({ vars: [input, amount = 1], name }) =>
-          `vec4 ${name} = invert(${glslArgs([input, amount])});`,
+          `vec4 ${name} = invert(${glslArgs(input, amount)});`,
       });
       let contrast = registerNode("contrast", {
         compile: ({ vars: [input, amount = 1.6], name }) =>
-          `vec4 ${name} = contrast(${glslArgs([input, amount])});`,
+          `vec4 ${name} = contrast(${glslArgs(input, amount)});`,
       });
       let brightness = registerNode("brightness", {
         compile: ({ vars: [input, amount = 0.4], name }) =>
-          `vec4 ${name} = brightness(${glslArgs([input, amount])});`,
+          `vec4 ${name} = brightness(${glslArgs(input, amount)});`,
       });
       let luma = registerNode("luma", {
         compile: ({ vars: [input, threshold = 0.5, tolerance = 0.1], name }) =>
-          `vec4 ${name} = luma(${glslArgs([input, threshold, tolerance])});`,
+          `vec4 ${name} = luma(${glslArgs(input, threshold, tolerance)});`,
       });
       let thresh = registerNode("thresh", {
         compile: ({ vars: [input, threshold = 0.5, tolerance = 0.04], name }) =>
-          `vec4 ${name} = thresh(${glslArgs([input, threshold, tolerance])});`,
+          `vec4 ${name} = thresh(${glslArgs(input, threshold, tolerance)});`,
       });
       let color = registerNode("color", {
         compile: ({ vars: [input, r = 1, g = 1, b = 1, a = 1], name }) =>
-          `vec4 ${name} = color(${glslArgs([input, r, g, b, a])});`,
+          `vec4 ${name} = color(${glslArgs(input, r, g, b, a)});`,
       });
       let saturate = registerNode("saturate", {
         compile: ({ vars: [input, amount = 2], name }) =>
-          `vec4 ${name} = saturate(${glslArgs([input, amount])});`,
+          `vec4 ${name} = saturate(${glslArgs(input, amount)});`,
       });
       let hue = registerNode("hue", {
         compile: ({ vars: [input, hue = 0.4], name }) =>
-          `vec4 ${name} = hue(${glslArgs([input, hue])});`,
+          `vec4 ${name} = hue(${glslArgs(input, hue)});`,
       });
       let colorama = registerNode("colorama", {
         compile: ({ vars: [input, amount = 0.005], name }) =>
-          `vec4 ${name} = colorama(${glslArgs([input, amount])});`,
+          `vec4 ${name} = colorama(${glslArgs(input, amount)});`,
       });
       let r = registerNode("r", {
         compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = r(${glslArgs([input, scale, offset])});`,
+          `vec4 ${name} = r(${glslArgs(input, scale, offset)});`,
       });
       let g = registerNode("g", {
         compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = g(${glslArgs([input, scale, offset])});`,
+          `vec4 ${name} = g(${glslArgs(input, scale, offset)});`,
       });
       let b = registerNode("b", {
         compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = b(${glslArgs([input, scale, offset])});`,
+          `vec4 ${name} = b(${glslArgs(input, scale, offset)});`,
       });
       let a = registerNode("a", {
         compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = a(${glslArgs([input, scale, offset])});`,
+          `vec4 ${name} = a(${glslArgs(input, scale, offset)});`,
       });
 
       // blend
 
       let add = registerNode("add", {
         compile: ({ vars: [input, texture, amount = 1], name }) =>
-          `vec4 ${name} = add(${glslArgs([input, texture, amount])});`,
+          `vec4 ${name} = add(${glslArgs(input, texture, amount)});`,
       });
       let sub = registerNode("sub", {
         compile: ({ vars: [input, texture, amount = 1], name }) =>
-          `vec4 ${name} = sub(${glslArgs([input, texture, amount])});`,
+          `vec4 ${name} = sub(${glslArgs(input, texture, amount)});`,
       });
       let layer = registerNode("layer", {
         compile: ({ vars: [input, texture], name }) =>
-          `vec4 ${name} = layer(${glslArgs([input, texture])});`,
+          `vec4 ${name} = layer(${glslArgs(input, texture)});`,
       });
       let blend = registerNode("blend", {
         compile: ({ vars: [input, texture, amount = 0.5], name }) =>
-          `vec4 ${name} = blend(${glslArgs([input, texture, amount])});`,
+          `vec4 ${name} = blend(${glslArgs(input, texture, amount)});`,
       });
       let mult = registerNode("mult", {
         compile: ({ vars: [input, texture, amount = 1], name }) => {
-          return `vec4 ${name} = mult(${glslArgs([input, texture, amount])});`;
+          return `vec4 ${name} = mult(${glslArgs(input, texture, amount)});`;
         },
       });
       let diff = registerNode("diff", {
         compile: ({ vars: [input, texture], name }) => {
-          return `vec4 ${name} = diff(${glslArgs([input, texture])});`;
+          return `vec4 ${name} = diff(${glslArgs(input, texture)});`;
         },
       });
       let mask = registerNode("mask", {
         compile: ({ vars: [input, texture], name }) => {
-          return `vec4 ${name} = mask(${glslArgs([input, texture])});`;
+          return `vec4 ${name} = mask(${glslArgs(input, texture)});`;
         },
       });
 
@@ -318,7 +309,7 @@
 
       let _modulate = registerNode("_modulate", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulate(${glslArgs(vars)});`,
+          `vec2 ${name} = modulate(${glslArgs(...vars)});`,
       });
       let modulate = register("modulate", (input, modulator, amount = 0.1) =>
         editGeometry(input, (st) => st._modulate(modulator, amount))
@@ -326,7 +317,7 @@
 
       let _modulateRepeat = registerNode("_modulateRepeat", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateRepeat(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateRepeat(${glslArgs(...vars)});`,
       });
       let modulateRepeat = register(
         "modulateRepeat",
@@ -345,7 +336,7 @@
 
       let _modulateRepeatX = registerNode("_modulateRepeatX", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateRepeatX(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateRepeatX(${glslArgs(...vars)});`,
       });
       let modulateRepeatX = register(
         "modulateRepeatX",
@@ -357,7 +348,7 @@
 
       let _modulateRepeatY = registerNode("_modulateRepeatY", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateRepeatY(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateRepeatY(${glslArgs(...vars)});`,
       });
       let modulateRepeatY = register(
         "modulateRepeatY",
@@ -369,7 +360,7 @@
 
       let _modulateKaleid = registerNode("_modulateKaleid", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateKaleid(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateKaleid(${glslArgs(...vars)});`,
       });
       let modulateKaleid = register(
         "modulateKaleid",
@@ -379,7 +370,7 @@
 
       let _modulateScrollX = registerNode("_modulateScrollX", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateScrollX(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateScrollX(${glslArgs(...vars)});`,
       });
       let modulateScrollX = register(
         "modulateScrollX",
@@ -391,7 +382,7 @@
 
       let _modulateScrollY = registerNode("_modulateScrollY", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateScrollY(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateScrollY(${glslArgs(...vars)});`,
       });
       let modulateScrollY = register(
         "modulateScrollY",
@@ -403,7 +394,7 @@
 
       let _modulateScale = registerNode("_modulateScale", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateScale(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateScale(${glslArgs(...vars)});`,
       });
       let modulateScale = register(
         "modulateScale",
@@ -415,7 +406,7 @@
 
       let _modulatePixelate = registerNode("_modulatePixelate", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulatePixelate(${glslArgs(vars)});`,
+          `vec2 ${name} = modulatePixelate(${glslArgs(...vars)});`,
       });
       let modulatePixelate = register(
         "modulatePixelate",
@@ -427,7 +418,7 @@
 
       let _modulateRotate = registerNode("_modulateRotate", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateRotate(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateRotate(${glslArgs(...vars)});`,
       });
       let modulateRotate = register(
         "modulateRotate",
@@ -440,7 +431,7 @@
       // TODO: find way to test this (without feedback)
       let _modulateHue = registerNode("_modulateHue", {
         compile: ({ vars, name }) =>
-          `vec2 ${name} = modulateHue(${glslArgs(vars)});`,
+          `vec2 ${name} = modulateHue(${glslArgs(...vars)});`,
       });
       let modulateHue = register("modulateHue", (input, texture, amount = 1) =>
         editGeometry(input, (st) => st._modulateHue(texture, amount))
@@ -450,8 +441,6 @@
         compile: ({ vars, name }) => `fragColor = ${vars[0]};`,
       });
       let exit = registerNode("exit", { internal: true });
-
-      let st = _st();
 
       // read base64 code from url
       let urlCode = window.location.hash.slice(1);
