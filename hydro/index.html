@@ -490,7 +490,10 @@
 
         // set up canvas
         const canvas = document.querySelector("#canvas");
+        canvas.width = canvas.clientWidth * window.devicePixelRatio;
+        canvas.height = canvas.clientHeight * window.devicePixelRatio;
         const gl = canvas.getContext("webgl");
+        gl.viewport(0, 0, canvas.width, canvas.height);
         const rect = canvas.getBoundingClientRect();
         canvas.width = rect.width; // * window.devicePixelRatio;
         canvas.height = rect.height; // * window.devicePixelRatio;
@@ -975,9 +978,10 @@ void main() {
           const fs = compileGlsl(hydroCode);
           cancelFrame();
           const program = createProgramFromSources(gl, [vs, fs]);
+          gl.useProgram(program);
           const positionLoc = gl.getAttribLocation(program, "a_position");
           const resolutionLoc = gl.getUniformLocation(program, "iResolution");
-          const mouseLoc = gl.getUniformLocation(program, "iMouse");
+          // const mouseLoc = gl.getUniformLocation(program, "iMouse");
           const timeLoc = gl.getUniformLocation(program, "iTime");
           const feedbackLoc = gl.getUniformLocation(program, "iFeedback");
 
@@ -991,6 +995,10 @@ void main() {
           // set up feedback ping pong textures
           let [texPing, texPong] = [makeTexture(gl), makeTexture(gl)];
           const framebuffer = gl.createFramebuffer();
+          gl.enableVertexAttribArray(positionLoc);
+          gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
+          gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
+          gl.uniform1i(feedbackLoc, 0);
 
           function render(now) {
             requestId = undefined;
@@ -998,18 +1006,8 @@ void main() {
             const elapsedTime = Math.min(now - then, 0.1);
             time += elapsedTime;
             then = now;
-
-            resizeCanvasToDisplaySize(gl.canvas, window.devicePixelRatio);
-
-            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
-            gl.useProgram(program);
-            gl.enableVertexAttribArray(positionLoc);
-            gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-
-            gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
-            gl.uniform2f(mouseLoc, mouseX, mouseY);
             gl.uniform1f(timeLoc, time);
-            gl.uniform1i(feedbackLoc, 0);
+            // gl.uniform2f(mouseLoc, mouseX, mouseY);
 
             drawWithFeedback(gl, framebuffer, texPing, texPong);
             // swap ping pong textures
@@ -1034,6 +1032,8 @@ void main() {
       }
 
       main();
+
+      // helpers
 
       function makeTexture(gl) {
         const texture = gl.createTexture();
@@ -1128,17 +1128,7 @@ void main() {
 
         return shader;
       }
-      function resizeCanvasToDisplaySize(canvas, multiplier) {
-        multiplier = multiplier || 1;
-        const width = (canvas.clientWidth * multiplier) | 0;
-        const height = (canvas.clientHeight * multiplier) | 0;
-        if (canvas.width !== width || canvas.height !== height) {
-          canvas.width = width;
-          canvas.height = height;
-          return true;
-        }
-        return false;
-      }
+
       function createProgramFromSources(
         gl,
         shaderSources,
