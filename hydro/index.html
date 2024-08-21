@@ -47,6 +47,17 @@
       let st = _st();
 
       // SOURCES
+      let o0, o1, o2, o3; // stub definitions
+
+      let _src = registerNode("src", {
+        compile: ({ vars, name }) => {
+          //let tex = `tex${vars[1]}`;
+          let tex = `iFeedback`; // so far, only 1 shader is supported
+          return `vec4 ${name} = src(${glslArgs(vars[0])},${tex});`;
+        },
+      });
+      let src = register("src", (/* tex */) => _src(st /* , tex */));
+
       let _osc = registerNode("_osc", {
         compile: ({ vars, name }) =>
           `vec4 ${name} = osc(${glslArgs(...vars)});`,
@@ -522,6 +533,7 @@
 uniform vec2 iResolution;
 uniform vec2 iMouse;
 uniform float iTime;
+uniform sampler2D iFeedback;
 `;
 
           let definitions = `
@@ -932,6 +944,10 @@ vec2 modulateRotate(vec2 _st, vec4 _c0, float multiple, float offset) {
 vec2 modulateHue(vec2 _st, vec4 _c0, float amount) {
   return _st + (vec2(_c0.g - _c0.r, _c0.b - _c0.g) * amount * 1.0 / iResolution.xy);
 }
+
+vec4 src(vec2 _st, sampler2D tex) {
+  return texture2D(tex, fract(_st));
+}
 `;
 
           // this should be shadertoy compatible
@@ -963,12 +979,18 @@ void main() {
           const resolutionLoc = gl.getUniformLocation(program, "iResolution");
           const mouseLoc = gl.getUniformLocation(program, "iMouse");
           const timeLoc = gl.getUniformLocation(program, "iTime");
+          const feedbackLoc = gl.getUniformLocation(program, "iFeedback");
+
           const vertices = new Float32Array([
             -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
           ]);
           const vertexBuffer = gl.createBuffer();
           gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
           gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+          // set up feedback ping pong textures
+          let [texPing, texPong] = [makeTexture(gl), makeTexture(gl)];
+          const framebuffer = gl.createFramebuffer();
 
           function render(now) {
             requestId = undefined;
@@ -982,20 +1004,17 @@ void main() {
             gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
             gl.useProgram(program);
             gl.enableVertexAttribArray(positionLoc);
-            gl.vertexAttribPointer(
-              positionLoc,
-              2, // 2 components per iteration
-              gl.FLOAT, // the data is 32bit floats
-              false, // don't normalize the data
-              0, // 0 = move forward size * sizeof(type) each iteration to get the next position
-              0 // start at the beginning of the buffer
-            );
+            gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
 
             gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
             gl.uniform2f(mouseLoc, mouseX, mouseY);
             gl.uniform1f(timeLoc, time);
+            gl.uniform1i(feedbackLoc, 0);
 
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+            drawWithFeedback(gl, framebuffer, texPing, texPong);
+            // swap ping pong textures
+            [texPing, texPong] = [texPong, texPing];
+
             requestFrame(render);
           }
 
@@ -1015,6 +1034,44 @@ void main() {
       }
 
       main();
+
+      function makeTexture(gl) {
+        const texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+          gl.TEXTURE_2D,
+          0,
+          gl.RGBA,
+          canvas.width,
+          canvas.height,
+          0,
+          gl.RGBA,
+          gl.UNSIGNED_BYTE,
+          null
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        return texture;
+      }
+
+      function drawWithFeedback(gl, framebuffer, texPing, texPong) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          gl.TEXTURE_2D,
+          texPing,
+          0
+        );
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, texPong);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
 
       // the rest is boilerplate code, loosely based on https://webglfundamentals.org/webgl/resources/webgl-utils.js
       /*
