@@ -495,8 +495,6 @@
         const gl = canvas.getContext("webgl");
         gl.viewport(0, 0, canvas.width, canvas.height);
         const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width; // * window.devicePixelRatio;
-        canvas.height = rect.height; // * window.devicePixelRatio;
 
         // mouse logic
         let mouseX = 0;
