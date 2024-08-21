@@ -46,6 +46,15 @@
       });
       let st = _st();
 
+      let _mouseX = registerNode("_mouseX", {
+        compile: ({ name }) => `float ${name} = iMouse.x;`,
+      });
+      let mouseX = _mouseX();
+      let _mouseY = registerNode("_mouseY", {
+        compile: ({ name }) => `float ${name} = iMouse.y;`,
+      });
+      let mouseY = _mouseY();
+
       // SOURCES
       let o0, o1, o2, o3; // stub definitions
 
@@ -947,7 +956,8 @@ vec2 modulateHue(vec2 _st, vec4 _c0, float amount) {
 }
 
 vec4 src(vec2 _st, sampler2D tex) {
-  return texture2D(tex, fract(_st));
+  vec2 uv = vec2(_st.x, 1.0 - _st.y);
+  return texture2D(tex, fract(uv));
 }
 `;
 
@@ -979,7 +989,7 @@ void main() {
           gl.useProgram(program);
           const positionLoc = gl.getAttribLocation(program, "a_position");
           const resolutionLoc = gl.getUniformLocation(program, "iResolution");
-          // const mouseLoc = gl.getUniformLocation(program, "iMouse");
+          const mouseLoc = gl.getUniformLocation(program, "iMouse");
           const timeLoc = gl.getUniformLocation(program, "iTime");
           const feedbackLoc = gl.getUniformLocation(program, "iFeedback");
 
@@ -1005,7 +1015,7 @@ void main() {
             time += elapsedTime;
             then = now;
             gl.uniform1f(timeLoc, time);
-            // gl.uniform2f(mouseLoc, mouseX, mouseY);
+            gl.uniform2f(mouseLoc, mouseX, mouseY);
 
             drawWithFeedback(gl, framebuffer, texPing, texPong);
             // swap ping pong textures
