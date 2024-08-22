@@ -56,16 +56,20 @@
       let mouseY = _mouseY();
 
       // SOURCES
-      let o0, o1, o2, o3; // stub definitions
+      let o0 = 0,
+        o1 = 1,
+        o2 = 2,
+        o3 = 3,
+        toRender = o0;
+      let render = (output = o0) => (toRender = output);
 
       let _src = registerNode("src", {
         compile: ({ vars, name }) => {
-          //let tex = `tex${vars[1]}`;
-          let tex = `iFeedback`; // so far, only 1 shader is supported
+          let tex = `tex${vars[1]}`;
           return `vec4 ${name} = src(${glslArgs(vars[0])},${tex});`;
         },
       });
-      let src = register("src", (/* tex */) => _src(st /* , tex */));
+      let src = register("src", (tex) => _src(st, tex));
 
       let _osc = registerNode("_osc", {
         compile: ({ vars, name }) =>
@@ -113,7 +117,10 @@
         compile: ({ vars, name }) =>
           `vec4 ${name} = solid(${glslArgs(...vars)});`,
       });
-      let solid = register("solid", (r, g, b, a = 1) => _solid(st, r, g, b, a));
+      let solid = register("solid", (r = 0, g = 0, b = 0, a = 1) =>
+        _solid(st, r, g, b, a)
+      );
+      let outputs = { [o0]: solid() };
 
       // GEOMETRY
 
@@ -483,6 +490,8 @@
 )
 .color(2.83,0.91,0.39)
 .out()`;
+
+      let programs = {}; // needs global var to reuse textures
       function main() {
         // set up code input
         const input = document.querySelector("#code");
@@ -528,22 +537,30 @@
           }
         }
 
-        let compileGlsl = (hydroCode) => {
-          console.log(hydroCode);
-          let node;
-          kabelsalat.Node.prototype.out = function () {
-            node = draw(this).exit();
-          };
-          const run = new Function(hydroCode);
+        // find out which outputs are src'ed into this graph
+        function getSources(graph) {
+          const sources = [];
+          graph.dfs((node) => {
+            if (node.type === "src") {
+              sources.push(node.ins[1].value);
+            }
+            return node;
+          });
+          return sources;
+        }
+        // compiles a kabelsalat graph into a fragment shader
+        function compileFragmentShader(graph, sources = []) {
+          graph = draw(graph).exit();
+          const unit = graph.compile();
+          const sourceUniforms = sources
+            .map((source) => `uniform sampler2D tex${source};`)
+            .join("\n");
 
-          run();
-          const unit = node.compile();
-          // console.log(unit.src);
           let head = `precision highp float;
 uniform vec2 iResolution;
 uniform vec2 iMouse;
 uniform float iTime;
-uniform sampler2D iFeedback;
+${sourceUniforms}
 `;
 
           let definitions = `
@@ -975,24 +992,88 @@ ${shadertoy}
 void main() {
   mainImage(gl_FragColor, gl_FragCoord.xy);
 }`;
+        }
+
+        // takes hydro code and outputs one shader for each output
+        let compileShaderPrograms = (gl, hydroCode) => {
+          // console.log(hydroCode);
+          let node;
+          kabelsalat.Node.prototype.out = function (output = o0) {
+            outputs[output] = this;
+          };
+          new Function(hydroCode)();
+          for (let output in outputs) {
+            const sources = getSources(outputs[output]);
+            const fs = compileFragmentShader(outputs[output], sources);
+            const program = createProgramFromSources(gl, [vs, fs]);
+            programs[output] = new Pen(gl, program, output, sources);
+          }
+          // TODO: return each shader as a new class instance
+          // console.log("shaders", shaders);
+          return programs;
         };
 
         // global time
         let then = 0;
         let time = 0;
         // runs on eval
-        function updateShader(hydroCode) {
+        function evaluate(hydroCode) {
+          toRender = o0; // reset default output (in case you're removing "render" call)
           // fragment shader
-          const fs = compileGlsl(hydroCode);
-          cancelFrame();
-          const program = createProgramFromSources(gl, [vs, fs]);
-          gl.useProgram(program);
-          const positionLoc = gl.getAttribLocation(program, "a_position");
-          const resolutionLoc = gl.getUniformLocation(program, "iResolution");
-          const mouseLoc = gl.getUniformLocation(program, "iMouse");
-          const timeLoc = gl.getUniformLocation(program, "iTime");
-          const feedbackLoc = gl.getUniformLocation(program, "iFeedback");
+          const pens = compileShaderPrograms(gl, hydroCode);
+          const pen = pens[toRender];
 
+          function render(now) {
+            requestId = undefined;
+            now *= 0.001; // convert to seconds
+            const elapsedTime = Math.min(now - then, 0.1);
+            time += elapsedTime;
+            then = now;
+
+            for (let o in pens) {
+              // console.log("render", o);
+              pens[o].render(time, mouseX, mouseY);
+            }
+
+            gl.useProgram(pen.program);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            requestFrame(render);
+          }
+
+          cancelFrame();
+          requestFrame(render);
+        }
+
+        // start rendering
+        evaluate(input.value);
+
+        // update on ctrl+enter
+        input.addEventListener("keydown", (e) => {
+          if ((e.ctrlKey || e.altKey) && e.key === "Enter") {
+            evaluate(input.value);
+            window.location.hash = "#" + btoa(input.value);
+          }
+        });
+      }
+
+      class Pen {
+        constructor(gl, program, id, sources) {
+          this.gl = gl;
+          this.id = id;
+          this.sources = sources;
+          this.program = program;
+          this.texPing = programs[id] ? programs[id].texPing : makeTexture(gl);
+          this.texPong = programs[id] ? programs[id].texPong : makeTexture(gl);
+
+          this.positionLoc = gl.getAttribLocation(program, "a_position");
+          this.resolutionLoc = gl.getUniformLocation(program, "iResolution");
+          this.mouseLoc = gl.getUniformLocation(program, "iMouse");
+          this.timeLoc = gl.getUniformLocation(program, "iTime");
+          this.sourceLocations = sources.map((source) =>
+            gl.getUniformLocation(program, `tex${source}`)
+          );
           const vertices = new Float32Array([
             -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
           ]);
@@ -1001,42 +1082,39 @@ void main() {
           gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
           // set up feedback ping pong textures
-          let [texPing, texPong] = [makeTexture(gl), makeTexture(gl)];
-          const framebuffer = gl.createFramebuffer();
-          gl.enableVertexAttribArray(positionLoc);
-          gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-          gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
-          gl.uniform1i(feedbackLoc, 0);
-
-          function render(now) {
-            requestId = undefined;
-            now *= 0.001; // convert to seconds
-            const elapsedTime = Math.min(now - then, 0.1);
-            time += elapsedTime;
-            then = now;
-            gl.uniform1f(timeLoc, time);
-            gl.uniform2f(mouseLoc, mouseX, mouseY);
-
-            drawWithFeedback(gl, framebuffer, texPing, texPong);
-            // swap ping pong textures
-            [texPing, texPong] = [texPong, texPing];
-
-            requestFrame(render);
-          }
-
-          requestFrame(render);
+          this.framebuffer = gl.createFramebuffer();
         }
+        render(time, mouseX, mouseY) {
+          const gl = this.gl;
+          gl.useProgram(this.program);
+          gl.enableVertexAttribArray(this.positionLoc);
+          gl.vertexAttribPointer(this.positionLoc, 2, gl.FLOAT, false, 0, 0);
 
-        // start rendering
-        updateShader(input.value);
-
-        // update on ctrl+enter
-        input.addEventListener("keydown", (e) => {
-          if (e.ctrlKey && e.key === "Enter") {
-            updateShader(input.value);
-            window.location.hash = "#" + btoa(input.value);
+          // set uniforms
+          gl.uniform2f(this.resolutionLoc, gl.canvas.width, gl.canvas.height);
+          gl.uniform1f(this.timeLoc, time);
+          gl.uniform2f(this.mouseLoc, mouseX, mouseY);
+          // set uniforms of sourced textures
+          for (let index of this.sourceLocations) {
+            gl.uniform1i(this.sourceLocations[index], index);
           }
-        });
+
+          gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            this.texPing,
+            0
+          );
+          // select texture of id
+          gl.activeTexture(gl.TEXTURE0 + Number(this.id));
+          gl.bindTexture(gl.TEXTURE_2D, this.texPong);
+          // draw to texture
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          // swap ping pong textures
+          [this.texPing, this.texPong] = [this.texPong, this.texPing];
+        }
       }
 
       main();
@@ -1063,22 +1141,6 @@ void main() {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.bindTexture(gl.TEXTURE_2D, null);
         return texture;
-      }
-
-      function drawWithFeedback(gl, framebuffer, texPing, texPong) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          gl.TEXTURE_2D,
-          texPing,
-          0
-        );
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, texPong);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
 
       // the rest is boilerplate code, loosely based on https://webglfundamentals.org/webgl/resources/webgl-utils.js

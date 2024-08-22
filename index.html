@@ -165,7 +165,7 @@
 
         // update on ctrl+enter
         input.addEventListener("keydown", (e) => {
-          if (e.ctrlKey && e.key === "Enter") {
+          if ((e.ctrlKey || e.altKey) && e.key === "Enter") {
             updateShader(input.value);
             window.location.hash = "#" + btoa(input.value);
             console.log("update", input.value);

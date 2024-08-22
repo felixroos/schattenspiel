@@ -1,6 +1,6 @@
 # hydro
 
-this is an experiment that tries to compile a hydra patch using @kabelsalat/core.
+this is an experiment that tries to compile a [hydra](https://github.com/hydra-synth/hydra-synth) patch using [@kabelsalat/core](https://github.com/felixroos/kabelsalat/tree/main/packages/core).
 
 ## Examples
 
@@ -8,20 +8,21 @@ this is an experiment that tries to compile a hydra patch using @kabelsalat/core
 - [ojack demo patch](https://felixroos.github.io/schattenspiel/hydro/#Ly8gbGljZW5zZWQgd2l0aCBDQyBCWS1OQy1TQSA0LjAgaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LW5jLXNhLzQuMC8KLy8gYnkgT2xpdmlhIEphY2sKLy8gaHR0cHM6Ly9vamFjay5naXRodWIuaW8KCm9zYygxMDAsIDAuMDEsIDEuNCkKICAucm90YXRlKDAsIDAuMSkKICAubXVsdChvc2MoMTAsIDAuMSkubW9kdWxhdGUob3NjKDEwKS5yb3RhdGUoMCwgLTAuMSksIDEpKQogIC5jb2xvcigyLjgzLCAwLjkxLCAwLjM5KQogIC5vdXQoKTs=)
 - [Puertas III (almost)](https://felixroos.github.io/schattenspiel/hydro/#Ly8gbGljZW5zZWQgd2l0aCBDQyBCWS1OQy1TQSA0LjAgaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LW5jLXNhLzQuMC8KLy8gUHVlcnRhcyBJSUkKLy8gcG9yIENlbGVzdGUgQmV0YW5jdXIKLy8gaHR0cHM6Ly9naXRodWIuY29tL2Vzc3RlYmFuCiAKb3NjKDQwLDAuMiwxKQogIC5tb2R1bGF0ZVNjYWxlKG9zYyg0MCwwLDEpLmthbGVpZCg4KSkKICAucmVwZWF0KDIsNCkKIC8vIC5tb2R1bGF0ZShvMCwwLjA1KQogIC5tb2R1bGF0ZUthbGVpZChzaGFwZSg0LDAuMSwxKSkKICAub3V0KCkK)
 - [feedback example](https://felixroos.github.io/schattenspiel/hydro/#c3JjKCkKLm1vZHVsYXRlKG5vaXNlKDgpLDAuMDA1KQouYmxlbmQoc2hhcGUoNCksMC4wMSkKLnJvdGF0ZSgwLjAxKQoub3V0KCk=)
+- [trypophobia](https://felixroos.github.io/schattenspiel/hydro/#Ly8gbGljZW5zZWQgd2l0aCBDQyBCWS1OQy1TQSA0LjAgaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LW5jLXNhLzQuMC8KLy9yYW5kb20gdHJ5cG9waG9iaWEgLSBjaGFuZ2VzIGV2ZXJ5dGltZSB5b3UgbG9hZCBpdCEKLy9ieSBSaXRjaHNlCi8vIG1vZGlmaWVkIGJ5IGZyb29zIHRvIHdvcmsgaW4gaHlkcm8KLy9pbnN0YWdyYW0uY29tL3JpdGNoc2UKIApmdW5jdGlvbiByKG1pbj0wLG1heD0xKSB7IHJldHVybiBNYXRoLnJhbmRvbSgpKihtYXgtbWluKSttaW47IH0KIApzb2xpZCgxLDEsMSkKLmRpZmYoIHNoYXBlKCA0LCByKDAuNiwwLjkzKSwgLjA5KS5yZXBlYXQoMjAsMTApICkKLm1vZHVsYXRlU2NhbGUob3NjKDgpLnJvdGF0ZShyKC0uNSwuNSkpLC41MikKLmFkZChzcmMobzApLnNjYWxlKDAuOTY1KS5yb3RhdGUoLjAxMiooTWF0aC5yb3VuZChyKC0yLDEpKSkpCi5jb2xvcihyKCkscigpLHIoKSkKLm1vZHVsYXRlUm90YXRlKHNyYyhvMCkscigwLDAuNSkpCi5icmlnaHRuZXNzKC4xNSkKLC43KQoub3V0KCkK)
 
 ## Completeness
 
 Not all hydra functions / features work, and probably never will, as this is mostly an experiment out of curiosity.
-The initial goal was to see if @kabelsalat/core could be used to compile an existing DSL that also targets another language (GLSL) + another domain (visual). It seems to work out nicely. I still haven't figured out how to do feedback with WebGL..
+The initial goal was to see if @kabelsalat/core could be used to compile an existing DSL that also targets another language (GLSL) + another domain (visual). It seems to work out nicely for the moment.
 
-Here's a list anyway:
+Here's a feature list anyway:
 
 ### Language Features
 
 - [x] Method-Chaining DSL
-- [ ] Arrays Arguments
-- [ ] Functions Arguments
-- [ ] Multiple Outputs / Feedback
+- [ ] Array Arguments
+- [ ] Function Arguments
+- [x] Multiple Outputs with Feedback
 
 ### Source
 
@@ -30,7 +31,7 @@ Here's a list anyway:
 - [x] osc
 - [x] shape
 - [x] gradient
-- [ ] src
+- [x] src
 - [x] solid
 - [ ] prev
 
@@ -101,7 +102,7 @@ Here's a list anyway:
 
 ### Synth Settings
 
-- [ ] render
+- [x] render
 - [ ] update
 - [ ] setResolution
 - [ ] hush
