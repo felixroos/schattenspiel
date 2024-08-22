@@ -69,7 +69,7 @@
           return `vec4 ${name} = src(${glslArgs(vars[0])},${tex});`;
         },
       });
-      let src = register("src", (tex) => _src(st, tex));
+      let src = register("src", (tex = o0) => _src(st, tex));
 
       let _osc = registerNode("_osc", {
         compile: ({ vars, name }) =>
@@ -542,7 +542,8 @@
           const sources = [];
           graph.dfs((node) => {
             if (node.type === "src") {
-              sources.push(node.ins[1].value);
+              let id = node.ins[1].value;
+              !sources.includes(id) && sources.push(id);
             }
             return node;
           });
