@@ -490,6 +490,8 @@
 )
 .color(2.83,0.91,0.39)
 .out()`;
+
+      let programs = {}; // needs global var to reuse textures
       function main() {
         // set up code input
         const input = document.querySelector("#code");
@@ -1000,7 +1002,6 @@ void main() {
             outputs[output] = this;
           };
           new Function(hydroCode)();
-          let programs = {};
           for (let output in outputs) {
             const sources = getSources(outputs[output]);
             const fs = compileFragmentShader(outputs[output], sources);
@@ -1015,9 +1016,9 @@ void main() {
         // global time
         let then = 0;
         let time = 0;
-        let [texPing, texPong] = [makeTexture(gl), makeTexture(gl)];
         // runs on eval
         function evaluate(hydroCode) {
+          toRender = o0; // reset default output (in case you're removing "render" call)
           // fragment shader
           const pens = compileShaderPrograms(gl, hydroCode);
           const pen = pens[toRender];
@@ -1063,8 +1064,8 @@ void main() {
           this.id = id;
           this.sources = sources;
           this.program = program;
-          this.texPing = makeTexture(gl); // todo make global
-          this.texPong = makeTexture(gl);
+          this.texPing = programs[id] ? programs[id].texPing : makeTexture(gl);
+          this.texPong = programs[id] ? programs[id].texPong : makeTexture(gl);
 
           this.positionLoc = gl.getAttribLocation(program, "a_position");
           this.resolutionLoc = gl.getUniformLocation(program, "iResolution");
