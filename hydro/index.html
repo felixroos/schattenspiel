@@ -1011,6 +1011,7 @@ void main() {
         // global time
         let then = 0;
         let time = 0;
+        let [texPing, texPong] = [makeTexture(gl), makeTexture(gl)];
         // runs on eval
         function updateShader(hydroCode) {
           // fragment shader
@@ -1035,7 +1036,6 @@ void main() {
           gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
           // set up feedback ping pong textures
-          let [texPing, texPong] = [makeTexture(gl), makeTexture(gl)];
           const framebuffer = gl.createFramebuffer();
           gl.enableVertexAttribArray(positionLoc);
           gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
