@@ -56,7 +56,12 @@
       let mouseY = _mouseY();
 
       // SOURCES
-      let o0, o1, o2, o3; // stub definitions
+      let o0 = 0,
+        o1 = 1,
+        o2 = 2,
+        o3 = 3,
+        toRender = o0;
+      let render = (output = o0) => (toRender = output);
 
       let _src = registerNode("src", {
         compile: ({ vars, name }) => {
@@ -113,7 +118,10 @@
         compile: ({ vars, name }) =>
           `vec4 ${name} = solid(${glslArgs(...vars)});`,
       });
-      let solid = register("solid", (r, g, b, a = 1) => _solid(st, r, g, b, a));
+      let solid = register("solid", (r = 0, g = 0, b = 0, a = 1) =>
+        _solid(st, r, g, b, a)
+      );
+      let outputs = { [o0]: solid() };
 
       // GEOMETRY
 
@@ -528,17 +536,10 @@
           }
         }
 
-        let compileGlsl = (hydroCode) => {
-          console.log(hydroCode);
-          let node;
-          kabelsalat.Node.prototype.out = function () {
-            node = draw(this).exit();
-          };
-          const run = new Function(hydroCode);
-
-          run();
+        // compiles a kabelsalat node into a shader
+        function compileGlsl(node) {
+          node = draw(node).exit();
           const unit = node.compile();
-          // console.log(unit.src);
           let head = `precision highp float;
 uniform vec2 iResolution;
 uniform vec2 iMouse;
@@ -975,6 +976,23 @@ ${shadertoy}
 void main() {
   mainImage(gl_FragColor, gl_FragCoord.xy);
 }`;
+        }
+
+        // takes hydro code and outputs one shader for each output
+        let compileShaders = (hydroCode) => {
+          console.log(hydroCode);
+          let node;
+          kabelsalat.Node.prototype.out = function (output = o0) {
+            outputs[output] = this;
+          };
+          new Function(hydroCode)();
+          let shaders = {};
+          for (let output in outputs) {
+            shaders[output] = compileGlsl(outputs[toRender]);
+          }
+          // TODO: return each shader as a new class instance
+          // console.log("shaders", shaders);
+          return shaders[toRender];
         };
 
         // global time
@@ -983,7 +1001,7 @@ void main() {
         // runs on eval
         function updateShader(hydroCode) {
           // fragment shader
-          const fs = compileGlsl(hydroCode);
+          const fs = compileShaders(hydroCode);
           cancelFrame();
           const program = createProgramFromSources(gl, [vs, fs]);
           gl.useProgram(program);
