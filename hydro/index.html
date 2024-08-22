@@ -535,11 +535,8 @@
           }
         }
 
-        // compiles a kabelsalat node into a shader
-        function compileFragmentShader(graph) {
-          graph = draw(graph).exit();
-          const unit = graph.compile();
-          // find out which outputs we need as a texture source
+        // find out which outputs are src'ed into this graph
+        function getSources(graph) {
           const sources = [];
           graph.dfs((node) => {
             if (node.type === "src") {
@@ -547,6 +544,12 @@
             }
             return node;
           });
+          return sources;
+        }
+        // compiles a kabelsalat graph into a fragment shader
+        function compileFragmentShader(graph, sources = []) {
+          graph = draw(graph).exit();
+          const unit = graph.compile();
           const sourceUniforms = sources
             .map((source) => `uniform sampler2D tex${source};`)
             .join("\n");
@@ -991,7 +994,7 @@ void main() {
 
         // takes hydro code and outputs one shader for each output
         let compileShaderPrograms = (gl, hydroCode) => {
-          console.log(hydroCode);
+          // console.log(hydroCode);
           let node;
           kabelsalat.Node.prototype.out = function (output = o0) {
             outputs[output] = this;
@@ -999,9 +1002,10 @@ void main() {
           new Function(hydroCode)();
           let programs = {};
           for (let output in outputs) {
-            const fs = compileFragmentShader(outputs[toRender]);
+            const sources = getSources(outputs[output]);
+            const fs = compileFragmentShader(outputs[output], sources);
             const program = createProgramFromSources(gl, [vs, fs]);
-            programs[output] = program;
+            programs[output] = new Pen(gl, program, output, sources);
           }
           // TODO: return each shader as a new class instance
           // console.log("shaders", shaders);
@@ -1013,21 +1017,62 @@ void main() {
         let time = 0;
         let [texPing, texPong] = [makeTexture(gl), makeTexture(gl)];
         // runs on eval
-        function updateShader(hydroCode) {
+        function evaluate(hydroCode) {
           // fragment shader
-          const programs = compileShaderPrograms(gl, hydroCode);
-          // TODO: render each program to a texture
-          const program = programs[toRender];
-          cancelFrame();
-          //
-          gl.useProgram(program);
-          const positionLoc = gl.getAttribLocation(program, "a_position");
-          const resolutionLoc = gl.getUniformLocation(program, "iResolution");
-          const mouseLoc = gl.getUniformLocation(program, "iMouse");
-          const timeLoc = gl.getUniformLocation(program, "iTime");
-          // why the heck is feedback still working when this is commented out?
-          // const feedbackLoc = gl.getUniformLocation(program, "tex0");
+          const pens = compileShaderPrograms(gl, hydroCode);
+          const pen = pens[toRender];
 
+          function render(now) {
+            requestId = undefined;
+            now *= 0.001; // convert to seconds
+            const elapsedTime = Math.min(now - then, 0.1);
+            time += elapsedTime;
+            then = now;
+
+            for (let o in pens) {
+              // console.log("render", o);
+              pens[o].render(time, mouseX, mouseY);
+            }
+
+            gl.useProgram(pen.program);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+            requestFrame(render);
+          }
+
+          cancelFrame();
+          requestFrame(render);
+        }
+
+        // start rendering
+        evaluate(input.value);
+
+        // update on ctrl+enter
+        input.addEventListener("keydown", (e) => {
+          if ((e.ctrlKey || e.altKey) && e.key === "Enter") {
+            evaluate(input.value);
+            window.location.hash = "#" + btoa(input.value);
+          }
+        });
+      }
+
+      class Pen {
+        constructor(gl, program, id, sources) {
+          this.gl = gl;
+          this.id = id;
+          this.sources = sources;
+          this.program = program;
+          this.texPing = makeTexture(gl); // todo make global
+          this.texPong = makeTexture(gl);
+
+          this.positionLoc = gl.getAttribLocation(program, "a_position");
+          this.resolutionLoc = gl.getUniformLocation(program, "iResolution");
+          this.mouseLoc = gl.getUniformLocation(program, "iMouse");
+          this.timeLoc = gl.getUniformLocation(program, "iTime");
+          this.sourceLocations = sources.map((source) =>
+            gl.getUniformLocation(program, `tex${source}`)
+          );
           const vertices = new Float32Array([
             -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
           ]);
@@ -1036,42 +1081,39 @@ void main() {
           gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
 
           // set up feedback ping pong textures
-          const framebuffer = gl.createFramebuffer();
-          gl.enableVertexAttribArray(positionLoc);
-          gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
-          gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
-          // why the heck is feedback still working when this is commented out?
-          // gl.uniform1i(feedbackLoc, 0);
-
-          function render(now) {
-            requestId = undefined;
-            now *= 0.001; // convert to seconds
-            const elapsedTime = Math.min(now - then, 0.1);
-            time += elapsedTime;
-            then = now;
-            gl.uniform1f(timeLoc, time);
-            gl.uniform2f(mouseLoc, mouseX, mouseY);
-
-            drawWithFeedback(gl, framebuffer, texPing, texPong);
-            // swap ping pong textures
-            [texPing, texPong] = [texPong, texPing];
-
-            requestFrame(render);
-          }
-
-          requestFrame(render);
+          this.framebuffer = gl.createFramebuffer();
         }
+        render(time, mouseX, mouseY) {
+          const gl = this.gl;
+          gl.useProgram(this.program);
+          gl.enableVertexAttribArray(this.positionLoc);
+          gl.vertexAttribPointer(this.positionLoc, 2, gl.FLOAT, false, 0, 0);
 
-        // start rendering
-        updateShader(input.value);
-
-        // update on ctrl+enter
-        input.addEventListener("keydown", (e) => {
-          if ((e.ctrlKey || e.altKey) && e.key === "Enter") {
-            updateShader(input.value);
-            window.location.hash = "#" + btoa(input.value);
+          // set uniforms
+          gl.uniform2f(this.resolutionLoc, gl.canvas.width, gl.canvas.height);
+          gl.uniform1f(this.timeLoc, time);
+          gl.uniform2f(this.mouseLoc, mouseX, mouseY);
+          // set uniforms of sourced textures
+          for (let index of this.sourceLocations) {
+            gl.uniform1i(this.sourceLocations[index], index);
           }
-        });
+
+          gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+          gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,
+            gl.COLOR_ATTACHMENT0,
+            gl.TEXTURE_2D,
+            this.texPing,
+            0
+          );
+          // select texture of id
+          gl.activeTexture(gl.TEXTURE0 + Number(this.id));
+          gl.bindTexture(gl.TEXTURE_2D, this.texPong);
+          // draw to texture
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          // swap ping pong textures
+          [this.texPing, this.texPong] = [this.texPong, this.texPing];
+        }
       }
 
       main();
@@ -1098,23 +1140,6 @@ void main() {
         gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
         gl.bindTexture(gl.TEXTURE_2D, null);
         return texture;
-      }
-
-      function drawWithFeedback(gl, framebuffer, texPing, texPong) {
-        gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        gl.framebufferTexture2D(
-          gl.FRAMEBUFFER,
-          gl.COLOR_ATTACHMENT0,
-          gl.TEXTURE_2D,
-          texPing,
-          0
-        );
-        // why the heck is feedback still working when this is commented out?
-        /* gl.activeTexture(gl.TEXTURE0); */
-        gl.bindTexture(gl.TEXTURE_2D, texPong);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
 
       // the rest is boilerplate code, loosely based on https://webglfundamentals.org/webgl/resources/webgl-utils.js
