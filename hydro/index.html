@@ -65,12 +65,11 @@
 
       let _src = registerNode("src", {
         compile: ({ vars, name }) => {
-          //let tex = `tex${vars[1]}`;
-          let tex = `iFeedback`; // so far, only 1 shader is supported
+          let tex = `tex${vars[1]}`;
           return `vec4 ${name} = src(${glslArgs(vars[0])},${tex});`;
         },
       });
-      let src = register("src", (/* tex */) => _src(st /* , tex */));
+      let src = register("src", (tex) => _src(st, tex));
 
       let _osc = registerNode("_osc", {
         compile: ({ vars, name }) =>
@@ -537,14 +536,26 @@
         }
 
         // compiles a kabelsalat node into a shader
-        function compileGlsl(node) {
-          node = draw(node).exit();
-          const unit = node.compile();
+        function compileFragmentShader(graph) {
+          graph = draw(graph).exit();
+          const unit = graph.compile();
+          // find out which outputs we need as a texture source
+          const sources = [];
+          graph.dfs((node) => {
+            if (node.type === "src") {
+              sources.push(node.ins[1].value);
+            }
+            return node;
+          });
+          const sourceUniforms = sources
+            .map((source) => `uniform sampler2D tex${source};`)
+            .join("\n");
+
           let head = `precision highp float;
 uniform vec2 iResolution;
 uniform vec2 iMouse;
 uniform float iTime;
-uniform sampler2D iFeedback;
+${sourceUniforms}
 `;
 
           let definitions = `
@@ -979,20 +990,22 @@ void main() {
         }
 
         // takes hydro code and outputs one shader for each output
-        let compileShaders = (hydroCode) => {
+        let compileShaderPrograms = (gl, hydroCode) => {
           console.log(hydroCode);
           let node;
           kabelsalat.Node.prototype.out = function (output = o0) {
             outputs[output] = this;
           };
           new Function(hydroCode)();
-          let shaders = {};
+          let programs = {};
           for (let output in outputs) {
-            shaders[output] = compileGlsl(outputs[toRender]);
+            const fs = compileFragmentShader(outputs[toRender]);
+            const program = createProgramFromSources(gl, [vs, fs]);
+            programs[output] = program;
           }
           // TODO: return each shader as a new class instance
           // console.log("shaders", shaders);
-          return shaders[toRender];
+          return programs;
         };
 
         // global time
@@ -1001,15 +1014,18 @@ void main() {
         // runs on eval
         function updateShader(hydroCode) {
           // fragment shader
-          const fs = compileShaders(hydroCode);
+          const programs = compileShaderPrograms(gl, hydroCode);
+          // TODO: render each program to a texture
+          const program = programs[toRender];
           cancelFrame();
-          const program = createProgramFromSources(gl, [vs, fs]);
+          //
           gl.useProgram(program);
           const positionLoc = gl.getAttribLocation(program, "a_position");
           const resolutionLoc = gl.getUniformLocation(program, "iResolution");
           const mouseLoc = gl.getUniformLocation(program, "iMouse");
           const timeLoc = gl.getUniformLocation(program, "iTime");
-          const feedbackLoc = gl.getUniformLocation(program, "iFeedback");
+          // why the heck is feedback still working when this is commented out?
+          // const feedbackLoc = gl.getUniformLocation(program, "tex0");
 
           const vertices = new Float32Array([
             -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
@@ -1024,7 +1040,8 @@ void main() {
           gl.enableVertexAttribArray(positionLoc);
           gl.vertexAttribPointer(positionLoc, 2, gl.FLOAT, false, 0, 0);
           gl.uniform2f(resolutionLoc, gl.canvas.width, gl.canvas.height);
-          gl.uniform1i(feedbackLoc, 0);
+          // why the heck is feedback still working when this is commented out?
+          // gl.uniform1i(feedbackLoc, 0);
 
           function render(now) {
             requestId = undefined;
@@ -1092,7 +1109,8 @@ void main() {
           texPing,
           0
         );
-        gl.activeTexture(gl.TEXTURE0);
+        // why the heck is feedback still working when this is commented out?
+        /* gl.activeTexture(gl.TEXTURE0); */
         gl.bindTexture(gl.TEXTURE_2D, texPong);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
