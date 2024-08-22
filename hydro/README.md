@@ -1,6 +1,6 @@
 # hydro
 
-this is an experiment that tries to compile a hydra patch using @kabelsalat/core.
+this is an experiment that tries to compile a [hydra](https://github.com/hydra-synth/hydra-synth) patch using [@kabelsalat/core](https://github.com/felixroos/kabelsalat/tree/main/packages/core).
 
 ## Examples
 
@@ -13,9 +13,9 @@ this is an experiment that tries to compile a hydra patch using @kabelsalat/core
 ## Completeness
 
 Not all hydra functions / features work, and probably never will, as this is mostly an experiment out of curiosity.
-The initial goal was to see if @kabelsalat/core could be used to compile an existing DSL that also targets another language (GLSL) + another domain (visual). It seems to work out nicely. I still haven't figured out how to do feedback with WebGL..
+The initial goal was to see if @kabelsalat/core could be used to compile an existing DSL that also targets another language (GLSL) + another domain (visual). It seems to work out nicely for the moment.
 
-Here's a list anyway:
+Here's a feature list anyway:
 
 ### Language Features
 
