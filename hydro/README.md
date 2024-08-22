@@ -20,9 +20,9 @@ Here's a list anyway:
 ### Language Features
 
 - [x] Method-Chaining DSL
-- [ ] Arrays Arguments
-- [ ] Functions Arguments
-- [ ] Multiple Outputs / Feedback
+- [ ] Array Arguments
+- [ ] Function Arguments
+- [x] Multiple Outputs with Feedback
 
 ### Source
 
@@ -31,7 +31,7 @@ Here's a list anyway:
 - [x] osc
 - [x] shape
 - [x] gradient
-- [ ] src
+- [x] src
 - [x] solid
 - [ ] prev
 
@@ -102,7 +102,7 @@ Here's a list anyway:
 
 ### Synth Settings
 
-- [ ] render
+- [x] render
 - [ ] update
 - [ ] setResolution
 - [ ] hush
