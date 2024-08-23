@@ -326,7 +326,7 @@
       let sequence = registerNode("sequence", {
         compile: ({ vars, name, node }) => {
           const uniform = `sequence${node.id}`;
-          return `float ${name} = ${uniform}`;
+          return `float ${name} = ${uniform};`;
         },
       });
 
@@ -797,34 +797,37 @@
 
         // find out which outputs are src'ed into this graph
         function getUniforms(graph) {
-          const uniforms = [];
-          const unis = {};
+          const uniforms = {};
           let sequenceCount = 0;
           graph.dfs((node) => {
             if (node.type === "src") {
               let id = node.ins[1].value;
               const name = `tex${id}`;
               const definition = `uniform sampler2D ${name};`;
-              unis[name] = definition;
-              !uniforms.includes(id) && uniforms.push(id);
+              uniforms[name] = { definition, id, type: "tex" };
             }
             if (node.type === "sequence") {
-              node.id = sequenceCount++;
-              const name = `sequence${node.id}`;
+              const id = sequenceCount++;
+              node.id = id;
+              const name = `sequence${id}`;
               const definition = `uniform float ${name};`;
-              unis[name] = definition;
+              uniforms[name] = {
+                definition,
+                id,
+                type: "sequence",
+                value: node.value,
+              };
             }
             return node;
           });
-          console.log("unis", unis);
           return uniforms;
         }
         // compiles a kabelsalat graph into a fragment shader
-        function compileFragmentShader(graph, uniforms = []) {
+        function compileFragmentShader(graph, uniforms = {}) {
           graph = draw(graph).exit();
           const unit = graph.compile();
-          const sourceUniforms = uniforms
-            .map((uniform) => `uniform sampler2D tex${uniform};`)
+          const sourceUniforms = Object.values(uniforms)
+            .map(({ definition }) => definition)
             .join("\n");
 
           let precision = "highp";
@@ -835,7 +838,6 @@ uniform vec2 iMouse;
 uniform float iTime;
 ${sourceUniforms}
 `;
-
           let definitions = `
 float _luminance(vec3 rgb) {
   const vec3 W = vec3(0.2125, 0.7154, 0.0721);
@@ -1344,9 +1346,7 @@ void main() {
           this.resolutionLoc = gl.getUniformLocation(program, "iResolution");
           this.mouseLoc = gl.getUniformLocation(program, "iMouse");
           this.timeLoc = gl.getUniformLocation(program, "iTime");
-          this.sourceLocations = uniforms.map((source) =>
-            gl.getUniformLocation(program, `tex${source}`)
-          );
+
           const vertices = new Float32Array([
             -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, 1.0,
           ]);
@@ -1368,8 +1368,18 @@ void main() {
           gl.uniform1f(this.timeLoc, time);
           gl.uniform2f(this.mouseLoc, mouseX, mouseY);
           // set uniforms of sourced textures
-          for (let index in this.sourceLocations) {
-            gl.uniform1i(this.sourceLocations[index], this.uniforms[index]);
+
+          // set values of dynamic uniforms
+          for (let name in this.uniforms) {
+            const uniform = this.uniforms[name];
+            const loc = gl.getUniformLocation(this.program, name);
+            if (uniform.type === "tex") {
+              gl.uniform1i(loc, uniform.id);
+            } else if (uniform.type === "sequence") {
+              const speed = 2;
+              const index = Math.floor((time * speed) % uniform.value.length);
+              gl.uniform1f(loc, uniform.value[index]);
+            }
           }
 
           gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
