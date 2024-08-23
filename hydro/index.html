@@ -38,6 +38,9 @@
       let nodeRegistry = new Map();
 
       function parseInput(input, node) {
+        if (Array.isArray(input)) {
+          return new Node("sequence", input);
+        }
         if (typeof input === "object") {
           return input;
         }
@@ -95,71 +98,9 @@
         return flatten(this);
       };
 
-      Node.prototype.dagify = function () {
-        return dagify(this);
-      };
-
       Node.prototype.apply = function (fn) {
         return fn(this);
       };
-
-      // returns true if the given node forms a cycle with "me" (or is me)
-      function loopsToMe(node, me) {
-        if (node === me) {
-          return true;
-        }
-        for (let neighbor of node.ins) {
-          if (neighbor.ins.includes(me)) {
-            return true;
-          }
-          if (loopsToMe(neighbor, me)) {
-            return true;
-          }
-        }
-      }
-      Node.prototype.loopsToMe = function (node) {
-        return loopsToMe(node, this);
-      };
-
-      // transforms the graph into a dag, where cycles are broken into feedback_read and feedback_write nodes
-      function dagify(node) {
-        if (node.type !== "exit") {
-          // the crucial point is that "node" is not part of a cycle itself
-          throw new Error("dagify should be called on an exit node");
-        }
-        let visitedNodes = [];
-        function dfs(currentNode) {
-          if (visitedNodes.includes(currentNode)) {
-            // currentNode has one or more cycles, find them...
-            const feedbackSources = currentNode.ins.filter((input) =>
-              loopsToMe(input, currentNode)
-            );
-            if (!feedbackSources.length) {
-              // it might happen that we end up here again after dagification..
-              return;
-            }
-            feedbackSources.forEach((feedbackSource) => {
-              const feedbackInlet = currentNode.ins.indexOf(feedbackSource);
-              const feedbackReader = new Node("feedback_read");
-              currentNode.ins[feedbackInlet] = feedbackReader;
-              const feedbackWriter = new Node("feedback_write");
-              feedbackWriter.ins = [feedbackSource];
-              feedbackWriter.to = feedbackReader;
-              node.ins.push(feedbackWriter); // don't unshift!
-            });
-            return;
-          }
-          visitedNodes.push(currentNode);
-          if (!currentNode.ins.length) {
-            return;
-          }
-          for (const neighbor of currentNode.ins) {
-            dfs(neighbor);
-          }
-        }
-        dfs(node);
-        return node;
-      }
 
       function visit(node, visited = []) {
         visited.push(node);
@@ -254,7 +195,7 @@
       }
 
       Node.prototype.compile = function (options) {
-        return compile(this.dagify(), options);
+        return compile(this, options);
       };
 
       // taken from noisecraft
@@ -381,6 +322,13 @@
         },
       });
       let src = register("src", (tex = o0) => _src(st, tex));
+
+      let sequence = registerNode("sequence", {
+        compile: ({ vars, name, node }) => {
+          const uniform = `sequence${node.id}`;
+          return `float ${name} = ${uniform}`;
+        },
+      });
 
       let _osc = registerNode("_osc", {
         compile: ({ vars, name }) =>
@@ -766,7 +714,6 @@
           )
       );
 
-      // TODO: find way to test this (without feedback)
       let _modulateHue = registerNode("_modulateHue", {
         compile: ({ vars, name }) =>
           `vec2 ${name} = modulateHue(${glslArgs(...vars)});`,
@@ -849,23 +796,35 @@
         }
 
         // find out which outputs are src'ed into this graph
-        function getSources(graph) {
-          const sources = [];
+        function getUniforms(graph) {
+          const uniforms = [];
+          const unis = {};
+          let sequenceCount = 0;
           graph.dfs((node) => {
             if (node.type === "src") {
               let id = node.ins[1].value;
-              !sources.includes(id) && sources.push(id);
+              const name = `tex${id}`;
+              const definition = `uniform sampler2D ${name};`;
+              unis[name] = definition;
+              !uniforms.includes(id) && uniforms.push(id);
+            }
+            if (node.type === "sequence") {
+              node.id = sequenceCount++;
+              const name = `sequence${node.id}`;
+              const definition = `uniform float ${name};`;
+              unis[name] = definition;
             }
             return node;
           });
-          return sources;
+          console.log("unis", unis);
+          return uniforms;
         }
         // compiles a kabelsalat graph into a fragment shader
-        function compileFragmentShader(graph, sources = []) {
+        function compileFragmentShader(graph, uniforms = []) {
           graph = draw(graph).exit();
           const unit = graph.compile();
-          const sourceUniforms = sources
-            .map((source) => `uniform sampler2D tex${source};`)
+          const sourceUniforms = uniforms
+            .map((uniform) => `uniform sampler2D tex${uniform};`)
             .join("\n");
 
           let precision = "highp";
@@ -1317,10 +1276,10 @@ void main() {
           };
           new Function(hydroCode)();
           for (let output in outputs) {
-            const sources = getSources(outputs[output]);
-            const fs = compileFragmentShader(outputs[output], sources);
+            const uniforms = getUniforms(outputs[output]);
+            const fs = compileFragmentShader(outputs[output], uniforms);
             const program = createProgramFromSources(gl, [vs, fs]);
-            programs[output] = new Pen(gl, program, output, sources);
+            programs[output] = new Pen(gl, program, output, uniforms);
           }
           // TODO: return each shader as a new class instance
           // console.log("shaders", shaders);
@@ -1373,10 +1332,10 @@ void main() {
       }
 
       class Pen {
-        constructor(gl, program, id, sources) {
+        constructor(gl, program, id, uniforms) {
           this.gl = gl;
           this.id = id;
-          this.sources = sources;
+          this.uniforms = uniforms;
           this.program = program;
           this.texPing = programs[id] ? programs[id].texPing : makeTexture(gl);
           this.texPong = programs[id] ? programs[id].texPong : makeTexture(gl);
@@ -1385,7 +1344,7 @@ void main() {
           this.resolutionLoc = gl.getUniformLocation(program, "iResolution");
           this.mouseLoc = gl.getUniformLocation(program, "iMouse");
           this.timeLoc = gl.getUniformLocation(program, "iTime");
-          this.sourceLocations = sources.map((source) =>
+          this.sourceLocations = uniforms.map((source) =>
             gl.getUniformLocation(program, `tex${source}`)
           );
           const vertices = new Float32Array([
@@ -1410,7 +1369,7 @@ void main() {
           gl.uniform2f(this.mouseLoc, mouseX, mouseY);
           // set uniforms of sourced textures
           for (let index in this.sourceLocations) {
-            gl.uniform1i(this.sourceLocations[index], this.sources[index]);
+            gl.uniform1i(this.sourceLocations[index], this.uniforms[index]);
           }
 
           gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
