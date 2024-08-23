@@ -34,9 +34,10 @@ Here's a feature list anyway:
 ### Language Features
 
 - [x] Method-Chaining DSL
-- [ ] Array Arguments
-- [ ] Function Arguments
+- [x] Array Arguments
+- [x] Function Arguments
 - [x] Multiple Outputs with Feedback
+- [ ] use o0...o3 without wrapping in src
 
 ### Source
 
@@ -125,7 +126,7 @@ Here's a feature list anyway:
 - [ ] bpm
 - [ ] width
 - [ ] height
-- [ ] time
+- [x] time
 - [ ] mouse
 
 ### Array
