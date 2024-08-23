@@ -557,7 +557,9 @@
             .map((source) => `uniform sampler2D tex${source};`)
             .join("\n");
 
-          let head = `precision highp float;
+          let precision = "highp";
+          //let precision = "mediump";
+          let head = `precision ${precision} float;
 uniform vec2 iResolution;
 uniform vec2 iMouse;
 uniform float iTime;
@@ -1096,8 +1098,8 @@ void main() {
           gl.uniform1f(this.timeLoc, time);
           gl.uniform2f(this.mouseLoc, mouseX, mouseY);
           // set uniforms of sourced textures
-          for (let index of this.sourceLocations) {
-            gl.uniform1i(this.sourceLocations[index], index);
+          for (let index in this.sourceLocations) {
+            gl.uniform1i(this.sourceLocations[index], this.sources[index]);
           }
 
           gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
