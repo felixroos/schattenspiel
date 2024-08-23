@@ -37,7 +37,7 @@ Here's a feature list anyway:
 - [x] Array Arguments
 - [x] Function Arguments
 - [x] Multiple Outputs with Feedback
-- [ ] use o0...o3 without wrapping in src
+- [x] use o0...o3 without wrapping in src (might be incomplete)
 
 ### Source
 

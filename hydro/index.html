@@ -323,6 +323,8 @@
         },
       });
       let src = register("src", (tex = o0) => _src(st, tex));
+      // this allows using o0..o3 (=number) as texture inputs
+      let vec4 = (input) => (typeof input === "number" ? src(input) : input);
 
       // this node is used to get a float in from the outside
       // used for functions and sequences (Arrays)
@@ -562,37 +564,68 @@
 
       // blend
 
-      let add = registerNode("add", {
-        compile: ({ vars: [input, texture, amount = 1], name }) =>
-          `vec4 ${name} = add(${glslArgs(input, texture, amount)});`,
-      });
-      let sub = registerNode("sub", {
-        compile: ({ vars: [input, texture, amount = 1], name }) =>
-          `vec4 ${name} = sub(${glslArgs(input, texture, amount)});`,
-      });
-      let layer = registerNode("layer", {
-        compile: ({ vars: [input, texture], name }) =>
-          `vec4 ${name} = layer(${glslArgs(input, texture)});`,
-      });
-      let blend = registerNode("blend", {
-        compile: ({ vars: [input, texture, amount = 0.5], name }) =>
-          `vec4 ${name} = blend(${glslArgs(input, texture, amount)});`,
-      });
-      let mult = registerNode("mult", {
-        compile: ({ vars: [input, texture, amount = 1], name }) => {
-          return `vec4 ${name} = mult(${glslArgs(input, texture, amount)});`;
-        },
-      });
-      let diff = registerNode("diff", {
-        compile: ({ vars: [input, texture], name }) => {
-          return `vec4 ${name} = diff(${glslArgs(input, texture)});`;
-        },
-      });
-      let mask = registerNode("mask", {
-        compile: ({ vars: [input, texture], name }) => {
-          return `vec4 ${name} = mask(${glslArgs(input, texture)});`;
-        },
-      });
+      let add = register(
+        "add",
+        (input, texture, amount = 1) =>
+          getNode("add", vec4(input), vec4(texture), amount),
+        {
+          compile: ({ vars, name }) =>
+            `vec4 ${name} = add(${glslArgs(...vars)});`,
+        }
+      );
+      let sub = register(
+        "sub",
+        (input, texture, amount = 1) =>
+          getNode("sub", vec4(input), vec4(texture), amount),
+        {
+          compile: ({ vars, name }) =>
+            `vec4 ${name} = sub(${glslArgs(...vars)});`,
+        }
+      );
+      let layer = register(
+        "layer",
+        (input, texture) => getNode("layer", vec4(input), vec4(texture)),
+        {
+          compile: ({ vars, name }) =>
+            `vec4 ${name} = layer(${glslArgs(...vars)});`,
+        }
+      );
+      let blend = register(
+        "blend",
+        (input, texture, amount = 0.5) =>
+          getNode("blend", vec4(input), vec4(texture), amount),
+        {
+          compile: ({ vars, name }) =>
+            `vec4 ${name} = blend(${glslArgs(...vars)});`,
+        }
+      );
+      let mult = register(
+        "mult",
+        (input, texture, amount = 1) =>
+          getNode("mult", vec4(input), vec4(texture), amount),
+        {
+          compile: ({ vars, name }) =>
+            `vec4 ${name} = mult(${glslArgs(...vars)});`,
+        }
+      );
+      let diff = register(
+        "diff",
+        (input, texture) => getNode("diff", vec4(input), vec4(texture)),
+        {
+          compile: ({ vars, name }) => {
+            return `vec4 ${name} = diff(${glslArgs(...vars)});`;
+          },
+        }
+      );
+      let mask = register(
+        "mask",
+        (input, texture) => getNode("mask", vec4(input), vec4(texture)),
+        {
+          compile: ({ vars, name }) => {
+            return `vec4 ${name} = mask(${glslArgs(...vars)});`;
+          },
+        }
+      );
 
       // modulate
 
@@ -601,7 +634,7 @@
           `vec2 ${name} = modulate(${glslArgs(...vars)});`,
       });
       let modulate = register("modulate", (input, modulator, amount = 0.1) =>
-        editGeometry(input, (st) => st._modulate(modulator, amount))
+        editGeometry(input, (st) => st._modulate(vec4(modulator), amount))
       );
 
       let _modulateRepeat = registerNode("_modulateRepeat", {
@@ -619,7 +652,13 @@
           offsetY = 0.5
         ) =>
           editGeometry(input, (st) =>
-            st._modulateRepeat(texture, repeatX, repeatY, offsetX, offsetY)
+            st._modulateRepeat(
+              vec4(texture),
+              repeatX,
+              repeatY,
+              offsetX,
+              offsetY
+            )
           )
       );
 
@@ -631,7 +670,7 @@
         "modulateRepeatX",
         (input, texture, reps = 3, offset = 0.5) =>
           editGeometry(input, (st) =>
-            st._modulateRepeatX(texture, reps, offset)
+            st._modulateRepeatX(vec4(texture), reps, offset)
           )
       );
 
@@ -643,7 +682,7 @@
         "modulateRepeatY",
         (input, texture, reps = 3, offset = 0.5) =>
           editGeometry(input, (st) =>
-            st._modulateRepeatY(texture, reps, offset)
+            st._modulateRepeatY(vec4(texture), reps, offset)
           )
       );
 
@@ -654,7 +693,7 @@
       let modulateKaleid = register(
         "modulateKaleid",
         (input, texture, nSides = 4) =>
-          editGeometry(input, (st) => st._modulateKaleid(texture, nSides))
+          editGeometry(input, (st) => st._modulateKaleid(vec4(texture), nSides))
       );
 
       let _modulateScrollX = registerNode("_modulateScrollX", {
@@ -665,7 +704,7 @@
         "modulateScrollX",
         (input, texture, scrollX = 0.5, speed = 0) =>
           editGeometry(input, (st) =>
-            st._modulateScrollX(texture, scrollX, speed)
+            st._modulateScrollX(vec4(texture), scrollX, speed)
           )
       );
 
@@ -677,7 +716,7 @@
         "modulateScrollY",
         (input, texture, scrollY = 0.5, speed = 0) =>
           editGeometry(input, (st) =>
-            st._modulateScrollY(texture, scrollY, speed)
+            st._modulateScrollY(vec4(texture), scrollY, speed)
           )
       );
 
@@ -689,7 +728,7 @@
         "modulateScale",
         (input, texture, multiple = 1, offset = 1) =>
           editGeometry(input, (st) =>
-            st._modulateScale(texture, multiple, offset)
+            st._modulateScale(vec4(texture), multiple, offset)
           )
       );
 
@@ -701,7 +740,7 @@
         "modulatePixelate",
         (input, texture, multiple = 10, offset = 13) =>
           editGeometry(input, (st) =>
-            st._modulatePixelate(texture, multiple, offset)
+            st._modulatePixelate(vec4(texture), multiple, offset)
           )
       );
 
@@ -713,7 +752,7 @@
         "modulateRotate",
         (input, texture, multiple = 1, offset = 0) =>
           editGeometry(input, (st) =>
-            st._modulateRotate(texture, multiple, offset)
+            st._modulateRotate(vec4(texture), multiple, offset)
           )
       );
 
@@ -722,7 +761,7 @@
           `vec2 ${name} = modulateHue(${glslArgs(...vars)});`,
       });
       let modulateHue = register("modulateHue", (input, texture, amount = 1) =>
-        editGeometry(input, (st) => st._modulateHue(texture, amount))
+        editGeometry(input, (st) => st._modulateHue(vec4(texture), amount))
       );
 
       let draw = registerNode("draw", {
