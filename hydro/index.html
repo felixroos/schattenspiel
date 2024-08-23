@@ -38,8 +38,9 @@
       let nodeRegistry = new Map();
 
       function parseInput(input, node) {
-        if (Array.isArray(input)) {
-          return new Node("sequence", input);
+        // array = sequence of floats, function = value setter function
+        if (Array.isArray(input) || typeof input === "function") {
+          return new Node("float", input);
         }
         if (typeof input === "object") {
           return input;
@@ -323,10 +324,12 @@
       });
       let src = register("src", (tex = o0) => _src(st, tex));
 
-      let sequence = registerNode("sequence", {
+      // this node is used to get a float in from the outside
+      // used for functions and sequences (Arrays)
+      let float = registerNode("float", {
         compile: ({ vars, name, node }) => {
-          const uniform = `sequence${node.id}`;
-          return `float ${name} = ${uniform};`;
+          const uniformName = `float${node.id}`;
+          return `float ${name} = ${uniformName};`;
         },
       });
 
@@ -749,7 +752,10 @@
 .color(2.83,0.91,0.39)
 .out()`;
 
+      // global vars
       let programs = {}; // needs global var to reuse textures
+      let then = 0; // last render callback time
+      let time = 0; // time in seconds
       function main() {
         // set up code input
         const input = document.querySelector("#code");
@@ -798,7 +804,7 @@
         // find out which outputs are src'ed into this graph
         function getUniforms(graph) {
           const uniforms = {};
-          let sequenceCount = 0;
+          let floatCount = 0;
           graph.dfs((node) => {
             if (node.type === "src") {
               let id = node.ins[1].value;
@@ -806,15 +812,23 @@
               const definition = `uniform sampler2D ${name};`;
               uniforms[name] = { definition, id, type: "tex" };
             }
-            if (node.type === "sequence") {
-              const id = sequenceCount++;
+            if (node.type === "float") {
+              const id = floatCount++;
               node.id = id;
-              const name = `sequence${id}`;
+              const name = `float${id}`;
               const definition = `uniform float ${name};`;
+              let type;
+              if (Array.isArray(node.value)) {
+                type = "sequence";
+              } else if (typeof node.value === "function") {
+                type = "fn";
+              } else {
+                throw new Error("unexpected value of float type");
+              }
               uniforms[name] = {
                 definition,
                 id,
-                type: "sequence",
+                type,
                 value: node.value,
               };
             }
@@ -1288,9 +1302,6 @@ void main() {
           return programs;
         };
 
-        // global time
-        let then = 0;
-        let time = 0;
         // runs on eval
         function evaluate(hydroCode) {
           toRender = o0; // reset default output (in case you're removing "render" call)
@@ -1379,6 +1390,8 @@ void main() {
               const speed = 2;
               const index = Math.floor((time * speed) % uniform.value.length);
               gl.uniform1f(loc, uniform.value[index]);
+            } else if (uniform.type === "fn") {
+              gl.uniform1f(loc, uniform.value());
             }
           }
 
