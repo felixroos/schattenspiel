@@ -82,15 +82,16 @@
       let registerNode = (type, schema) =>
         register(type, (...args) => getNode(type, ...args), schema);
 
-      nodeRegistry.set("n", {
-        ins: [{ name: "value", default: 0 }],
-      });
-      function n(value) {
-        if (typeof value === "object") {
-          return value;
-        }
-        return node("n", value);
-      }
+      let n = register(
+        "n",
+        (value) => {
+          if (typeof value === "object") {
+            return value;
+          }
+          return node("n", value);
+        },
+        {} // the compiler has a special case for n, so no need to pass compile function
+      );
 
       Node.prototype.apply = function (fn) {
         return fn(this);
@@ -590,7 +591,7 @@
 
       // blend
 
-      let add = register("add", {
+      let add = glslNode("add", {
         type: "vec4",
         args: (input, texture, amount = 1) => [
           vec4(input),
