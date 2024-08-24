@@ -20,7 +20,7 @@ You can also load some of my own examples:
 Not all hydra functions / features work, and probably never will, as this is mostly an experiment out of curiosity.
 The initial goal was to see if @kabelsalat/core could be used to compile an existing DSL that also targets another language (GLSL) + another domain (visual). It seems to work out nicely for the moment.
 
-Here's a feature list anyway:
+Here's a feature list anyway (based on [Hydra Functions](https://hydra.ojack.xyz/api/)):
 
 ### Language Features
 
