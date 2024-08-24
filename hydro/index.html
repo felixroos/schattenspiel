@@ -326,10 +326,6 @@
         o1 = 1,
         o2 = 2,
         o3 = 3,
-        s0 = 0,
-        s1 = 1,
-        s2 = 2,
-        s3 = 3,
         toRender = o0;
       let render = (output = o0) => (toRender = output);
 
@@ -785,8 +781,9 @@
 
       // read base64 code from url
       let urlCode = window.location.hash.slice(1);
+      let parseCode = (hash) => decodeURIComponent(atob(hash));
       if (urlCode) {
-        urlCode = atob(urlCode);
+        urlCode = parseCode(urlCode);
         console.log("loaded code from url!");
       }
       // use urlCode or fall back to default shadertoy example
@@ -861,6 +858,13 @@
       let hush = () => console.warn("hush function not implemented");
       let setFunction = () =>
         console.warn("setFunction function not implemented");
+      let sourceStub = {
+        initCam: () => console.warn("s0.initCam not implemented"),
+      };
+      let s0 = sourceStub,
+        s1 = sourceStub,
+        s2 = sourceStub,
+        s3 = sourceStub;
 
       // speed
 
@@ -869,6 +873,21 @@
         const input = document.querySelector("#code");
         input.value = initialShader;
         window.codestyle = (attr, value) => (input.style[attr] = value);
+        let examples;
+        window.shuffle = async () => {
+          if (!examples) {
+            let res = await fetch(
+              "https://raw.githubusercontent.com/hydra-synth/hydra/main/src/stores/examples.json"
+            );
+            examples = await res.json();
+          }
+          const example = examples[Math.floor(Math.random() * examples.length)];
+          console.log("shuffle:", example.sketch_id);
+          const code = parseCode(example.code);
+          input.value = code;
+          window.location.hash = "#" + btoa(code);
+          evaluate(code);
+        };
 
         // vertex shader
         const vs = `
