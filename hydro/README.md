@@ -1,6 +1,6 @@
 # hydro
 
-this is an experiment that tries to compile a [hydra](https://github.com/hydra-synth/hydra-synth) patch using [@kabelsalat/core](https://github.com/felixroos/kabelsalat/tree/main/packages/core).
+This is an experiment that tries to imeplement a minimal [hydra](https://github.com/hydra-synth/hydra-synth) in a single self-contained HTML file. The GLSL compiler is implemented with a stripped down version of [@kabelsalat/core](https://github.com/felixroos/kabelsalat/tree/main/packages/core).
 
 ## Examples
 
@@ -24,6 +24,10 @@ Many of these examples are taken from the hydra examples to be able to compare b
 - [trying to get closer by Ritchse](https://felixroos.github.io/schattenspiel/hydro/#Ly8gbGljZW5zZWQgd2l0aCBDQyBCWS1OQy1TQSA0LjAgaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LW5jLXNhLzQuMC8KLy90cnlpbmcgdG8gZ2V0IGNsb3NlcgovL2J5IFJpdGNoc2UKLy9pbnN0YWdyYW0uY29tL3JpdGNoc2UKIApvc2MoNjAsLTAuMDE1LDAuMykuZGlmZihvc2MoNjAsMC4wOCkucm90YXRlKE1hdGguUEkvMikpCgkubW9kdWxhdGVTY2FsZShub2lzZSgzLjUsMC4yNSkubW9kdWxhdGVTY2FsZShvc2MoMTUpLnJvdGF0ZSgwLC4yKSksMC42KQoJLmNvbG9yKDEsMC41LDAuNCkuY29udHJhc3QoMS40KQoJLmFkZChzcmMobzApLm1vZHVsYXRlKHNyYyhvMCksLjA0KSwuNikKCS5pbnZlcnQoKS5icmlnaHRuZXNzKDAuMSkuY29udHJhc3QoMS4yKQoJLm1vZHVsYXRlU2NhbGUob3NjKDIpLC0wLjIpCiAgLm91dCgpCg==)
 - [CNSD](https://felixroos.github.io/schattenspiel/hydro/#Ly8gbGljZW5zZWQgd2l0aCBDQyBCWS1OQy1TQSA0LjAgaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LW5jLXNhLzQuMC8KLy9DTkRTRAovL2h0dHA6Ly9tYWxpdHppbmNvcnRlcy5uZXQvCi8vYW1lYmEKCm9zYygxNSwgMC4wMSwgMC4xKS5tdWx0KG9zYygxLCAtMC4xKS5tb2R1bGF0ZShvc2MoMikucm90YXRlKDQsMSksIDIwKSkKLmNvbG9yKDAsMi40LDUpCi5zYXR1cmF0ZSgwLjQpCi5sdW1hKDEsMC4xLCA2KQouc2NhbGUoMC43LCAwLjcpCi5kaWZmKHNyYyhvMCkpLy8gbzAKLm91dChvMCkvLyBvMQo=)
 - [moire](https://felixroos.github.io/schattenspiel/hydro/#Ly8gbGljZW5zZWQgd2l0aCBDQyBCWS1OQy1TQSA0LjAgaHR0cHM6Ly9jcmVhdGl2ZWNvbW1vbnMub3JnL2xpY2Vuc2VzL2J5LW5jLXNhLzQuMC8KLy8gbW9pcmUKLy8gYnkgT2xpdmlhIEphY2sKLy8gdHdpdHRlcjogQF9vamFja18KCnBhdHRlcm4gPSAoKSA9PiBvc2MoMjAwLCAwKS5rYWxlaWQoMjAwKS5zY2FsZSgxLCAwLjQpCi8vCnBhdHRlcm4oKQogIC5zY3JvbGxYKDAuMSwgMC4wMSkKICAubXVsdChwYXR0ZXJuKCkpCiAgLm91dCgpCg==)
+
+## Shuffle
+
+You can open the browser console and enter `shuffle()` to load a random hydra example.
 
 ## Completeness
 
