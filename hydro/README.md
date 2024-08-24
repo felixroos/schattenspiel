@@ -1,6 +1,6 @@
 # hydro
 
-This is an experiment that tries to imeplement a minimal [hydra](https://github.com/hydra-synth/hydra-synth) in a single self-contained HTML file. The GLSL compiler is implemented with a stripped down version of [@kabelsalat/core](https://github.com/felixroos/kabelsalat/tree/main/packages/core).
+This is an experiment that tries to implement a minimal [hydra](https://github.com/hydra-synth/hydra-synth) in a single self-contained HTML file. The GLSL compiler is implemented with a stripped down version of [@kabelsalat/core](https://github.com/felixroos/kabelsalat/tree/main/packages/core).
 
 ## Examples
 
