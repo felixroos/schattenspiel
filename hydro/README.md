@@ -2,6 +2,8 @@
 
 This is an experiment that tries to implement a minimal [hydra](https://github.com/hydra-synth/hydra-synth) in a single self-contained HTML file. The GLSL compiler is implemented with a stripped down version of [@kabelsalat/core](https://github.com/felixroos/kabelsalat/tree/main/packages/core).
 
+live at [felixroos.github.io/schattenspiel/hydro](https://felixroos.github.io/schattenspiel/hydro/)
+
 ## Examples
 
 To load a random example, open the browser console and enter `shuffle()`.
