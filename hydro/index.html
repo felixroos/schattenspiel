@@ -65,9 +65,6 @@
         return next.withIns(...args.map((arg) => parseInput(arg, next)));
       }
 
-      let registerNode = (type, schema) =>
-        register(type, (...args) => getNode(type, ...args), schema);
-
       let register = (name, fn, schema) => {
         schema && nodeRegistry.set(name, schema);
         Node.prototype[name] = function (...args) {
@@ -76,6 +73,26 @@
         return fn;
       };
 
+      let registerNode = (type, schema) =>
+        register(type, (...args) => getNode(type, ...args), schema);
+
+      let glslNode = (functionName, schema) => {
+        if (!schema.type) {
+          throw new Error(`no "schema.type" set for node ${functionName}`);
+        }
+        if (!schema.args) {
+          throw new Error(`no "schema.args" set for node ${functionName}`);
+        }
+        return register(
+          functionName,
+          (...args) => getNode(functionName, ...schema.args(...args)),
+          {
+            compile: ({ vars, name }) =>
+              `${schema.type} ${name} = ${functionName}(${glslArgs(...vars)});`,
+            ...schema,
+          }
+        );
+      };
       nodeRegistry.set("n", {
         ins: [{ name: "value", default: 0 }],
       });
@@ -501,131 +518,127 @@
 
       // Color
 
-      let posterize = registerNode("posterize", {
-        compile: ({ vars: [input, bins = 3, gamma = 0.6], name }) =>
-          `vec4 ${name} = posterize(${glslArgs(input, bins, gamma)});`,
+      let posterize = glslNode("posterize", {
+        type: "vec4",
+        args: (input, bins = 3, gamma = 0.6) => [vec4(input), bins, gamma],
       });
-      let shift = registerNode("shift", {
-        compile: ({ vars: [input, r = 0.5, g = 0, b = 0, a = 0], name }) =>
-          `vec4 ${name} = shift(${glslArgs(input, r, g, b, a)});`,
+      let shift = glslNode("shift", {
+        type: "vec4",
+        args: (input, r = 0.5, g = 0, b = 0, a = 0) => [
+          vec4(input),
+          r,
+          g,
+          b,
+          a,
+        ],
       });
-      let invert = registerNode("invert", {
-        compile: ({ vars: [input, amount = 1], name }) =>
-          `vec4 ${name} = invert(${glslArgs(input, amount)});`,
+      let invert = glslNode("invert", {
+        type: "vec4",
+        args: (input, amount = 1) => [vec4(input), amount],
       });
-      let contrast = registerNode("contrast", {
-        compile: ({ vars: [input, amount = 1.6], name }) =>
-          `vec4 ${name} = contrast(${glslArgs(input, amount)});`,
+      let contrast = glslNode("contrast", {
+        type: "vec4",
+        args: (input, amount = 1.6) => [vec4(input), amount],
       });
-      let brightness = registerNode("brightness", {
-        compile: ({ vars: [input, amount = 0.4], name }) =>
-          `vec4 ${name} = brightness(${glslArgs(input, amount)});`,
+      let brightness = glslNode("brightness", {
+        type: "vec4",
+        args: (input, amount = 0.4) => [vec4(input), amount],
       });
-      let luma = registerNode("luma", {
-        compile: ({ vars: [input, threshold = 0.5, tolerance = 0.1], name }) =>
-          `vec4 ${name} = luma(${glslArgs(input, threshold, tolerance)});`,
+      let luma = glslNode("luma", {
+        type: "vec4",
+        args: (input, threshold, tolerance) => [
+          vec4(input),
+          threshold,
+          tolerance,
+        ],
       });
-      let thresh = registerNode("thresh", {
-        compile: ({ vars: [input, threshold = 0.5, tolerance = 0.04], name }) =>
-          `vec4 ${name} = thresh(${glslArgs(input, threshold, tolerance)});`,
+      let thresh = glslNode("thresh", {
+        type: "vec4",
+        args: (input, threshold = 0.5, tolerance = 0.04) => [
+          vec4(input),
+          threshold,
+          tolerance,
+        ],
       });
-      let color = registerNode("color", {
-        compile: ({ vars: [input, r = 1, g = 1, b = 1, a = 1], name }) =>
-          `vec4 ${name} = color(${glslArgs(input, r, g, b, a)});`,
+      let color = glslNode("color", {
+        type: "vec4",
+        args: (input, r = 1, g = 1, b = 1, a = 1) => [vec4(input), r, g, b, a],
       });
-      let saturate = registerNode("saturate", {
-        compile: ({ vars: [input, amount = 2], name }) =>
-          `vec4 ${name} = saturate(${glslArgs(input, amount)});`,
+      let saturate = glslNode("saturate", {
+        type: "vec4",
+        args: (input, amount = 2) => [vec4(input), amount],
       });
-      let hue = registerNode("hue", {
-        compile: ({ vars: [input, hue = 0.4], name }) =>
-          `vec4 ${name} = hue(${glslArgs(input, hue)});`,
+      let hue = glslNode("hue", {
+        type: "vec4",
+        args: (input, hue = 0.4) => [vec4(input), hue],
       });
-      let colorama = registerNode("colorama", {
-        compile: ({ vars: [input, amount = 0.005], name }) =>
-          `vec4 ${name} = colorama(${glslArgs(input, amount)});`,
+      let colorama = glslNode("colorama", {
+        type: "vec4",
+        args: (input, amount = 0.005) => [vec4(input), amount],
       });
-      let r = registerNode("r", {
-        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = r(${glslArgs(input, scale, offset)});`,
+      let r = glslNode("r", {
+        type: "vec4",
+        args: (input, scale = 1, offset = 0) => [vec4(input), scale, offset],
       });
-      let g = registerNode("g", {
-        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = g(${glslArgs(input, scale, offset)});`,
+      let g = glslNode("g", {
+        type: "vec4",
+        args: (input, scale = 1, offset = 0) => [vec4(input), scale, offset],
       });
-      let b = registerNode("b", {
-        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = b(${glslArgs(input, scale, offset)});`,
+      let b = glslNode("b", {
+        type: "vec4",
+        args: (input, scale = 1, offset = 0) => [vec4(input), scale, offset],
       });
-      let a = registerNode("a", {
-        compile: ({ vars: [input, scale = 1, offset = 0], name }) =>
-          `vec4 ${name} = a(${glslArgs(input, scale, offset)});`,
+      let a = glslNode("a", {
+        type: "vec4",
+        args: (input, scale = 1, offset = 0) => [vec4(input), scale, offset],
       });
 
       // blend
 
-      let add = register(
-        "add",
-        (input, texture, amount = 1) =>
-          getNode("add", vec4(input), vec4(texture), amount),
-        {
-          compile: ({ vars, name }) =>
-            `vec4 ${name} = add(${glslArgs(...vars)});`,
-        }
-      );
-      let sub = register(
-        "sub",
-        (input, texture, amount = 1) =>
-          getNode("sub", vec4(input), vec4(texture), amount),
-        {
-          compile: ({ vars, name }) =>
-            `vec4 ${name} = sub(${glslArgs(...vars)});`,
-        }
-      );
-      let layer = register(
-        "layer",
-        (input, texture) => getNode("layer", vec4(input), vec4(texture)),
-        {
-          compile: ({ vars, name }) =>
-            `vec4 ${name} = layer(${glslArgs(...vars)});`,
-        }
-      );
-      let blend = register(
-        "blend",
-        (input, texture, amount = 0.5) =>
-          getNode("blend", vec4(input), vec4(texture), amount),
-        {
-          compile: ({ vars, name }) =>
-            `vec4 ${name} = blend(${glslArgs(...vars)});`,
-        }
-      );
-      let mult = register(
-        "mult",
-        (input, texture, amount = 1) =>
-          getNode("mult", vec4(input), vec4(texture), amount),
-        {
-          compile: ({ vars, name }) =>
-            `vec4 ${name} = mult(${glslArgs(...vars)});`,
-        }
-      );
-      let diff = register(
-        "diff",
-        (input, texture) => getNode("diff", vec4(input), vec4(texture)),
-        {
-          compile: ({ vars, name }) => {
-            return `vec4 ${name} = diff(${glslArgs(...vars)});`;
-          },
-        }
-      );
-      let mask = register(
-        "mask",
-        (input, texture) => getNode("mask", vec4(input), vec4(texture)),
-        {
-          compile: ({ vars, name }) => {
-            return `vec4 ${name} = mask(${glslArgs(...vars)});`;
-          },
-        }
-      );
+      let add = register("add", {
+        type: "vec4",
+        args: (input, texture, amount = 1) => [
+          vec4(input),
+          vec4(texture),
+          amount,
+        ],
+      });
+      let sub = glslNode("sub", {
+        type: "vec4",
+        args: (input, texture, amount = 1) => [
+          vec4(input),
+          vec4(texture),
+          amount,
+        ],
+      });
+      let layer = glslNode("layer", {
+        type: "vec4",
+        args: (input, texture) => [vec4(input), vec4(texture)],
+      });
+      let blend = glslNode("blend", {
+        type: "vec4",
+        args: (input, texture, amount = 0.5) => [
+          vec4(input),
+          vec4(texture),
+          amount,
+        ],
+      });
+      let mult = glslNode("mult", {
+        type: "vec4",
+        args: (input, texture, amount = 1) => [
+          vec4(input),
+          vec4(texture),
+          amount,
+        ],
+      });
+      let diff = glslNode("diff", {
+        type: "vec4",
+        args: (input, texture) => [vec4(input), vec4(texture)],
+      });
+      let mask = glslNode("mask", {
+        type: "vec4",
+        args: (input, texture) => [vec4(input), vec4(texture)],
+      });
 
       // modulate
 
