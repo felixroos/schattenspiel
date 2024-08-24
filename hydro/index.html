@@ -33,9 +33,18 @@
           this.ins = [];
         }
       }
+
       const node = (type, value) => new Node(type, value);
 
-      let nodeRegistry = new Map();
+      Node.prototype.withIns = function (...ins) {
+        this.ins = ins;
+        return this;
+      };
+
+      function getNode(type, ...args) {
+        const next = node(type);
+        return next.withIns(...args.map((arg) => parseInput(arg, next)));
+      }
 
       function parseInput(input, node) {
         // array = sequence of floats, function = value setter function
@@ -60,10 +69,7 @@
         return 0;
       }
 
-      function getNode(type, ...args) {
-        const next = node(type);
-        return next.withIns(...args.map((arg) => parseInput(arg, next)));
-      }
+      let nodeRegistry = new Map();
 
       let register = (name, fn, schema) => {
         schema && nodeRegistry.set(name, schema);
@@ -76,23 +82,6 @@
       let registerNode = (type, schema) =>
         register(type, (...args) => getNode(type, ...args), schema);
 
-      let glslNode = (functionName, schema) => {
-        if (!schema.type) {
-          throw new Error(`no "schema.type" set for node ${functionName}`);
-        }
-        if (!schema.args) {
-          throw new Error(`no "schema.args" set for node ${functionName}`);
-        }
-        return register(
-          functionName,
-          (...args) => getNode(functionName, ...schema.args(...args)),
-          {
-            compile: ({ vars, name }) =>
-              `${schema.type} ${name} = ${functionName}(${glslArgs(...vars)});`,
-            ...schema,
-          }
-        );
-      };
       nodeRegistry.set("n", {
         ins: [{ name: "value", default: 0 }],
       });
@@ -103,23 +92,11 @@
         return node("n", value);
       }
 
-      Node.prototype.out = function () {
-        return dac(this);
-      };
-
-      Node.prototype.withIns = function (...ins) {
-        this.ins = ins;
-        return this;
-      };
-
-      Node.prototype.flatten = function () {
-        return flatten(this);
-      };
-
       Node.prototype.apply = function (fn) {
         return fn(this);
       };
 
+      // TODO: dedupe with dfs
       function visit(node, visited = []) {
         visited.push(node);
         node.ins.forEach((child) => {
@@ -168,7 +145,7 @@
           varPrefix = "n",
         } = options;
         log && console.log("compile", node);
-        const nodes = node.flatten(true);
+        const nodes = flatten(node);
         // log && console.log("flat", nodes);
         const sorted = topoSort(nodes);
         let lines = [];
@@ -297,6 +274,24 @@
       }
 
       //// Hydra specific logic
+
+      let glslNode = (functionName, schema) => {
+        if (!schema.type) {
+          throw new Error(`no "schema.type" set for node ${functionName}`);
+        }
+        if (!schema.args) {
+          throw new Error(`no "schema.args" set for node ${functionName}`);
+        }
+        return register(
+          functionName,
+          (...args) => getNode(functionName, ...schema.args(...args)),
+          {
+            compile: ({ vars, name }) =>
+              `${schema.type} ${name} = ${functionName}(${glslArgs(...vars)});`,
+            ...schema,
+          }
+        );
+      };
 
       let glslArgs = (...args) =>
         args
