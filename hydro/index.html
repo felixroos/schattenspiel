@@ -326,6 +326,10 @@
         o1 = 1,
         o2 = 2,
         o3 = 3,
+        s0 = 0,
+        s1 = 1,
+        s2 = 2,
+        s3 = 3,
         toRender = o0;
       let render = (output = o0) => (toRender = output);
 
@@ -542,7 +546,7 @@
       });
       let luma = glslNode("luma", {
         type: "vec4",
-        args: (input, threshold, tolerance) => [
+        args: (input, threshold = 0.5, tolerance = 0.1) => [
           vec4(input),
           threshold,
           tolerance,
@@ -584,10 +588,11 @@
         type: "vec4",
         args: (input, scale = 1, offset = 0) => [vec4(input), scale, offset],
       });
-      let a = glslNode("a", {
+      // clashes with audio object
+      /* let a = glslNode("a", {
         type: "vec4",
         args: (input, scale = 1, offset = 0) => [vec4(input), scale, offset],
-      });
+      }); */
 
       // blend
 
@@ -804,6 +809,61 @@
       let programs = {}; // needs global var to reuse textures
       let then = 0; // last render callback time
       let time = 0; // time in seconds
+      let mouse = { x: 0, y: 0 };
+      let speed = 1;
+      let width = canvas.width;
+      let height = canvas.height;
+      // stub definition for audio object
+      let a = {
+        fft: [0, 0, 0, 0],
+        setSmooth: () => {},
+        setCutoff: () => {},
+        setBins: () => {},
+        setScale: () => {},
+        hide: () => {},
+        show: () => {},
+      };
+      // Array functions
+      function enhanceArray(method, fn) {
+        Object.defineProperty(Array.prototype, method, {
+          value: function () {
+            return fn(this);
+          },
+          enumerable: false,
+          writable: false,
+          configurable: false,
+        });
+      }
+      enhanceArray("fast", (arr) => {
+        console.warn("TODO: implement Array.prototype.fast");
+        return arr;
+      });
+      enhanceArray("smooth", (arr) => {
+        console.warn("TODO: implement Array.prototype.smooth");
+        return arr;
+      });
+      enhanceArray("ease", (arr) => {
+        console.warn("TODO: implement Array.prototype.ease");
+        return arr;
+      });
+      enhanceArray("offset", (arr) => {
+        console.warn("TODO: implement Array.prototype.offset");
+        return arr;
+      });
+      enhanceArray("fit", (arr) => {
+        console.warn("TODO: implement Array.prototype.fit");
+        return arr;
+      });
+      // synth settings (stub definitions)
+      let update = () => console.warn("update function not implemented");
+      let setResolution = () =>
+        console.warn("setResolution function not implemented");
+      let hush = () => console.warn("hush function not implemented");
+      let setFunction = () =>
+        console.warn("setFunction function not implemented");
+
+      // speed
+
       function main() {
         // set up code input
         const input = document.querySelector("#code");
@@ -827,12 +887,10 @@
         const rect = canvas.getBoundingClientRect();
 
         // mouse logic
-        let mouseX = 0;
-        let mouseY = 0;
         document.addEventListener("mousemove", (e) => {
           const { left, height, top } = canvas.getBoundingClientRect();
-          mouseX = e.clientX - left;
-          mouseY = height - (e.clientY - top) - 1;
+          mouse.x = e.clientX - left;
+          mouse.y = height - (e.clientY - top) - 1;
         });
 
         // animation frame logic
@@ -1366,7 +1424,7 @@ void main() {
 
             for (let o in pens) {
               // console.log("render", o);
-              pens[o].render(time, mouseX, mouseY);
+              pens[o].render(time, mouse.x, mouse.y);
             }
 
             gl.useProgram(pen.program);
@@ -1439,7 +1497,7 @@ void main() {
               const index = Math.floor((time * speed) % uniform.value.length);
               gl.uniform1f(loc, uniform.value[index]);
             } else if (uniform.type === "fn") {
-              gl.uniform1f(loc, uniform.value());
+              gl.uniform1f(loc, uniform.value({ time }));
             }
           }
 

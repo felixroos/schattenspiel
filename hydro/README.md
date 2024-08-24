@@ -6,6 +6,7 @@ this is an experiment that tries to compile a [hydra](https://github.com/hydra-s
 
 Many of these examples are taken from the hydra examples to be able to compare both + I've added some of my own
 
+- [dragon tails](https://felixroos.github.io/schattenspiel/hydro/#c2hhcGUoMiwgKCkgPT4gTWF0aC5zaW4odGltZSkvNCsuMjUsIC41KQoucmVwZWF0KDEsNSkKLmNvbG9yKC42LDAsLjgpCi5tb2R1bGF0ZShub2lzZSgyLC4zKSwuMDUpCi8vLm1vZHVsYXRlUm90YXRlKG5vaXNlKDEwLC4zKSwuMikKLnJvdGF0ZSgxLjUsMC4xKQouY29sb3JhbWEoKQouZGlmZihvMCkKLmNvbG9yYW1hKCkKLmJyaWdodG5lc3MoLjQpCi5odWUoKCkgPT4gTWF0aC5zaW4odGltZS84KSkKLmJsZW5kKG8wLC40KQoucG9zdGVyaXplKDQpCi5tb2R1bGF0ZShvc2MoKSwuMDAwNSkKLm91dChvMCk=)
 - [nyan worm](https://felixroos.github.io/schattenspiel/hydro/#c2hhcGUoNDAsLjEsLjIpCi5yZXBlYXQoNCwgNCkKLm1vZHVsYXRlKG5vaXNlKDIsLjUpLC4wOCkKLnJvdGF0ZSgwLC4xKQouZGlmZihzcmMobzApLC45OSkKLmNvbG9yYW1hKCkKLmJsZW5kKHNyYyhvMCksLjQpCi5waXhlbGF0ZSgyNTYsMjU2KQoub3V0KG8wKTs=)
 - [jelly fountain](https://felixroos.github.io/schattenspiel/hydro/#c3JjKG8wKS5ibGVuZChzcmMobzApKQoubW9kdWxhdGUobm9pc2UoOCksMC4wMDUpCi5ibGVuZChzaGFwZSgzLC4zLC4zKSwwLjAxKQoucm90YXRlKDAuMDEpCi5jb2xvcmFtYSgpCi5vdXQobzAp)
 - [comic eye soup](https://felixroos.github.io/schattenspiel/hydro/#b3NjKDIwLC4xLDIpCi5tb2R1bGF0ZShub2lzZSgzKSwwLjI1KQoudGhyZXNoKC40KQoubW9kdWxhdGUob3NjKDEwKS5yb3RhdGUoTWF0aC5QSS8yKSwuNykKLm1vZHVsYXRlS2FsZWlkKG5vaXNlKDQpKQoub3V0KCk=)
@@ -37,10 +38,11 @@ Here's a feature list anyway:
 - [x] Array Arguments
 - [x] Function Arguments
 - [x] Multiple Outputs with Feedback
-- [x] use o0...o3 without wrapping in src (might be incomplete)
 
 ### Source
 
+- [x] o0...o3
+- [ ] s0...s3
 - [x] noise
 - [x] voronoi
 - [x] osc
@@ -124,10 +126,10 @@ Here's a feature list anyway:
 - [ ] setFunction
 - [ ] speed
 - [ ] bpm
-- [ ] width
-- [ ] height
+- [x] width
+- [x] height
 - [x] time
-- [ ] mouse
+- [x] mouse
 
 ### Array
 
